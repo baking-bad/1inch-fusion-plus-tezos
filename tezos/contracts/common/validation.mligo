@@ -42,3 +42,11 @@ let assert_only_before
     : unit =
   let current_time = Tezos.get_now () in
   Assert.Error.assert (current_time < timestamp) Errors.invalid_time
+
+[@inline]
+let assert_safety_deposit_in_transaction
+    (immutables : Types.immutables)
+    : unit =
+  Assert.Error.assert 
+    (Tezos.get_amount () = immutables.safety_deposit) 
+    Errors.invalid_safety_deposit_in_transaction

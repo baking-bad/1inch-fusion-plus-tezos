@@ -33,7 +33,7 @@ let _withdraw_to
     : operation list =
   let () = Validation.assert_valid_secret secret immutables.hashlock in
   [
-    Tokens.transfer immutables.token (Tezos.get_self_address ()) target immutables.amount;
+    Tokens.transfer_fa immutables.token (Tezos.get_self_address ()) target immutables.amount;
     Tokens.transfer_tez (Tezos.get_sender ()) immutables.safety_deposit
   ]
 
@@ -68,7 +68,7 @@ let _cancel
     (immutables : Types.immutables)
     : operation list =
   [
-    Tokens.transfer immutables.token (Tezos.get_self_address ()) immutables.maker immutables.amount;
+    Tokens.transfer_fa immutables.token (Tezos.get_self_address ()) immutables.maker immutables.amount;
     Tokens.transfer_tez (Tezos.get_sender ()) immutables.safety_deposit
   ]
 

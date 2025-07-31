@@ -1,9 +1,9 @@
 #import "types.mligo" "Types"
 
 [@inline]
-let transfer_tez (to_ : address) (amount : nat) : operation =
+let transfer_tez (to_ : address) (amount : tez) : operation =
   let contract = (Tezos.get_contract to_ : unit contract) in
-  Tezos.Next.Operation.transaction () (amount * 1mutez) contract
+  Tezos.Next.Operation.transaction () amount contract
 
 type fa12_transfer = {
   [@annot:from] 
@@ -43,8 +43,7 @@ let transfer_fa2 (token : address) (token_id : nat) (from_ : address) (to_ : add
   Tezos.Next.Operation.transaction transfer_call 0mutez contract
 
 [@inline]
-let transfer (token : Types.token) (from_ : address) (to_ : address) (amount : nat) : operation =
+let transfer_fa (token : Types.fa_token) (from_ : address) (to_ : address) (amount : nat) : operation =
   match token with
-  | TEZ -> transfer_tez to_ amount
   | FA12 addr -> transfer_fa12 addr from_ to_ amount
   | FA2 (addr, token_id) -> transfer_fa2 addr token_id from_ to_ amount

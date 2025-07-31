@@ -1,5 +1,4 @@
-type token = 
-  | TEZ
+type fa_token = 
   | FA12 of address
   | FA2 of address * nat
 
@@ -18,8 +17,8 @@ type immutables = {
   hashlock : bytes;
   maker : address;
   taker : address;
-  token : token;
+  token : fa_token;
   amount : nat;
-  safety_deposit : nat;
+  safety_deposit : tez;
   timelocks : timelocks;
 }
