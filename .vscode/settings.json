@@ -28,6 +28,7 @@
     "etherlink",
     "ghostnet",
     "taquito",
-    "tezos"
+    "tezos",
+    "topup"
   ],
 }

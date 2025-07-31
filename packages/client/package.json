@@ -14,6 +14,9 @@
     "npm": ">=10.9.0"
   },
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "@taquito/signer": "^22.0.0",
+    "@taquito/taquito": "^22.0.0",
+    "dotenv": "^17.2.1",
+    "ethers": "^6.15.0"
   }
 }

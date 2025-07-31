@@ -1,16 +1,23 @@
 import readline, { Interface as ReadlineInterface } from 'node:readline';
+
 import utils from './utils/index.js';
+import config from './config.js';
+import { EvmChainAccount, TezosChainAccount } from './chainAccounts/index.js';
 
 type Command = [aliases: readonly string[], handler: (inputCommand: string, ...args: any) => (void | Promise<void>), description?: string];
 
 export class App {
   protected readonly rl: ReadlineInterface;
   protected readonly commands: Command[] = [];
+  protected readonly evmAccount: EvmChainAccount;
+  protected readonly tezosAccount: TezosChainAccount;
 
   constructor() {
     this.commands = [
       [['h', 'help'], this.helpCommandHandler, 'Help'],
       [['q', 'exit'], this.exitCommandHandler, 'Exiting the program'],
+      [['t', 'topup'], this.topUpCommandHandler, 'Top up EVM account from donor'],
+      [['b', 'balance'], this.getTokenBalanceHandler, 'Get token balance'],
       [['s', 'swap'], this.swapCommandHandler, 'Swap tokens'],
     ];
 
@@ -19,11 +26,31 @@ export class App {
       output: process.stdout,
       terminal: true,
     });
+
+    this.evmAccount = new EvmChainAccount({
+      userPrivateKey: config.evmChain.userPrivateKey,
+      rpcUrl: config.evmChain.rpcUrl,
+      chainId: config.evmChain.chainId,
+      tokens: config.evmChain.tokens,
+      donorTokenAddresses: config.evmChain.donorTokenAddresses,
+    });
+    this.tezosAccount = new TezosChainAccount({
+      userPrivateKey: config.tezosChain.userPrivateKey,
+      rpcUrl: config.tezosChain.rpcUrl,
+      tokens: config.tezosChain.tokens,
+    });
   }
 
   async start() {
     console.log('Starting...');
 
+    await this.evmAccount.start();
+    await this.tezosAccount.start();
+
+    console.log('Ethereum account:', await this.evmAccount.getAddress());
+    console.log('Tezos account:', await this.tezosAccount.getAddress());
+    console.log('Type "help" for available commands.');
+    console.log('');
     this.waitForNewCommand();
   }
 
@@ -31,7 +58,8 @@ export class App {
     try {
       console.log('Stopping...');
 
-      //
+      await this.tezosAccount.stop();
+      await this.evmAccount.stop();
 
       console.log('App stopped successfully');
       return true;
@@ -62,6 +90,21 @@ export class App {
       console.error('Unknown command');
 
     this.waitForNewCommand();
+  }
+
+  protected isEvmChain(chainName: string): boolean {
+    switch (chainName.toLowerCase()) {
+      case 'evm':
+      case 'ethereum':
+      case 'eth':
+        return true;
+      case 'tezos':
+      case 'xtz':
+      case 'tez':
+        return false;
+      default:
+        throw new Error(`Unknown chain: ${chainName}`);
+    }
   }
 
   private swapCommandHandler = async (inputCommand: string, ...args: string[]) => {
@@ -102,6 +145,64 @@ export class App {
     }
 
     console.log(`Swapping ${inputAmount} ${srcToken} [${srcChain}] to ${outputAmount} ${dstToken} [${dstChain}]...`);
+  };
+
+  private topUpCommandHandler = async (inputCommand: string, ...args: string[]) => {
+    const [rawChainAndToken, rawAmount] = args;
+
+    if (args.length < 2) {
+      console.error(`Usage: ${inputCommand} <chain>:<tokenSymbol> <amount>`);
+      return;
+    }
+
+    const amount = BigInt(rawAmount!);
+    const [chainName, tokenName] = rawChainAndToken!.split(':', 2);
+    if (!chainName || !tokenName) {
+      console.error('Invalid chain and token:', rawChainAndToken);
+      return;
+    }
+
+    if (this.isEvmChain(chainName)) {
+      const token = this.evmAccount.getToken(tokenName);
+      if (!token) {
+        console.error(`Token ${tokenName} not found on EVM chain`);
+        return;
+      }
+
+      await this.evmAccount.topUpFromDonor(token.address, amount);
+      console.log(`Successfully topped up ${amount} from donor for token ${token.address}`);
+    }
+    else {
+      console.warn('Top up for Tezos chain is not implemented yet');
+    }
+  };
+
+  private getTokenBalanceHandler = async (inputCommand: string, ...args: string[]) => {
+    const [rawChainAndToken] = args;
+    if (args.length < 1) {
+      console.error(`Usage: ${inputCommand} <chain>:<tokenSymbol>`);
+      return;
+    }
+
+    const [chainName, tokenSymbol] = rawChainAndToken!.split(':', 2);
+    if (!chainName || !tokenSymbol) {
+      console.error('Invalid chain and token:', rawChainAndToken);
+      return;
+    }
+
+    if (this.isEvmChain(chainName)) {
+      const token = this.evmAccount.getToken(tokenSymbol);
+      if (!token) {
+        console.error(`Token ${tokenSymbol} not found on EVM chain`);
+        return;
+      }
+
+      const balance = await this.evmAccount.getTokenBalance(token.address);
+      console.log(`Balance of ${tokenSymbol} on EVM chain: ${balance}`);
+    }
+    else {
+      console.warn('Getting balance for Tezos chain is not implemented yet');
+    }
   };
 
   private helpCommandHandler = (_inputCommand: string) => {

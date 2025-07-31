@@ -3,7 +3,6 @@ import { fileURLToPath } from 'url';
 
 import { config as loadEnv } from 'dotenv';
 
-import { ChainIds, type ChainId } from './models/chain.js';
 import utils from './utils/index.js';
 
 const workingDirectory = path.dirname(fileURLToPath(import.meta.url));
