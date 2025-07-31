@@ -5,14 +5,14 @@ try {
 
   process.on('SIGINT', async () => {
     console.log('SIGINT received. Cleaning up...');
-    await app.stop();
-    process.exit(0);
+    const isSuccess = await app.stop();
+    process.exit(isSuccess ? 0 : 1);
   });
 
   process.on('SIGTERM', async () => {
     console.log('SIGTERM received. Cleaning up...');
-    await app.stop();
-    process.exit(0);
+    const isSuccess = await app.stop();
+    process.exit(isSuccess ? 0 : 1);
   });
 
   await app.start();
