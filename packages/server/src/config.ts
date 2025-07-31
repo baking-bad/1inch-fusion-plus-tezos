@@ -3,6 +3,8 @@ import { fileURLToPath } from 'url';
 
 import { config as loadEnv } from 'dotenv';
 
+import utils from './utils/index.js';
+
 const workingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(workingDirectory, '../.env');
 
@@ -26,8 +28,6 @@ function parseIntegerEnvVar(envVarName: string, defaultValue?: number | ErrorCon
   return value;
 };
 
-const isValidPort = (port: number): boolean => Number.isSafeInteger(port) && port >= 1 && port <= 65535;
-
 export interface ServerConfig {
   readonly port: number;
 }
@@ -39,7 +39,7 @@ export interface Config {
 
 const createServerConfig = (): ServerConfig => {
   const port = parseIntegerEnvVar('SERVER__PORT', 80);
-  if (!isValidPort(port))
+  if (!utils.validation.isValidPort(port))
     throw new Error(`The SERVER__PORT is invalid: ${port} is not a valid port number`);
 
   return { port };
