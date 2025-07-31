@@ -85,7 +85,7 @@ export class App {
         await command[1](inputCommand, ...args);
       }
       catch (error) {
-        console.error(error);
+        console.error(error instanceof Error ? error.message : error);
       }
     }
     else
@@ -109,6 +109,17 @@ export class App {
     }
   }
 
+  protected parseChainAndToken(rawChainAndToken: string | undefined | null): [string, string] {
+    if (!rawChainAndToken)
+      throw new Error('Chain and token must be specified in the format <chain>:<tokenSymbol>');
+
+    const [chainName, tokenSymbol] = rawChainAndToken.split(':', 2);
+    if (!chainName || !tokenSymbol)
+      throw new Error(`Invalid chain and token format: ${rawChainAndToken}`);
+
+    return [chainName, tokenSymbol];
+  }
+
   private swapCommandHandler = async (inputCommand: string, ...args: string[]) => {
     const [rawInputAmount, rawSrcChainAndToken, rawOutputAmount, rawDstChainAndToken, ...excessArgs] = args;
 
@@ -123,11 +134,7 @@ export class App {
       return;
     }
 
-    const [srcChain, srcToken] = rawSrcChainAndToken!.split(':', 2);
-    if (!srcChain || !srcToken) {
-      console.error('Invalid source chain and token:', rawSrcChainAndToken);
-      return;
-    }
+    const [srcChain, srcToken] = this.parseChainAndToken(rawSrcChainAndToken);
 
     const outputAmount = Number(rawOutputAmount);
     if (!utils.validation.isNonNegativeNumber(outputAmount)) {
@@ -135,11 +142,7 @@ export class App {
       return;
     }
 
-    const [dstChain, dstToken] = rawDstChainAndToken!.split(':', 2);
-    if (!dstChain || !dstToken) {
-      console.error('Invalid destination chain and token:', rawDstChainAndToken);
-      return;
-    }
+    const [dstChain, dstToken] = this.parseChainAndToken(rawDstChainAndToken);
 
     if (excessArgs.length > 0) {
       console.warn('Excess arguments provided:', excessArgs.join(', '));
@@ -163,11 +166,7 @@ export class App {
       return;
     }
 
-    const [chainName, tokenName] = rawChainAndToken!.split(':', 2);
-    if (!chainName || !tokenName) {
-      console.error('Invalid chain and token:', rawChainAndToken);
-      return;
-    }
+    const [chainName, tokenName] = this.parseChainAndToken(rawChainAndToken);
 
     if (this.isEvmChain(chainName)) {
       const token = this.evmAccount.getToken(tokenName);
@@ -191,11 +190,7 @@ export class App {
       return;
     }
 
-    const [chainName, tokenSymbol] = rawChainAndToken!.split(':', 2);
-    if (!chainName || !tokenSymbol) {
-      console.error('Invalid chain and token:', rawChainAndToken);
-      return;
-    }
+    const [chainName, tokenSymbol] = this.parseChainAndToken(rawChainAndToken);
 
     if (this.isEvmChain(chainName)) {
       const token = this.evmAccount.getToken(tokenSymbol);
