@@ -1,92 +1,23 @@
 { parameter
-    (or (pair %withdraw
-           (bytes %secret)
-           (pair %immutables
-              (bytes %order_hash)
-              (bytes %hashlock)
-              (address %maker)
-              (address %taker)
-              (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
-              (nat %amount)
-              (nat %safety_deposit)
-              (pair %timelocks
-                 (timestamp %src_withdrawal)
-                 (timestamp %src_public_withdrawal)
-                 (timestamp %src_cancellation)
-                 (timestamp %src_public_cancellation)
-                 (timestamp %dst_withdrawal)
-                 (timestamp %dst_public_withdrawal)
-                 (timestamp %dst_cancellation))))
-        (or (pair %withdrawTo
-               (bytes %secret)
-               (address %target)
-               (pair %immutables
-                  (bytes %order_hash)
-                  (bytes %hashlock)
-                  (address %maker)
-                  (address %taker)
-                  (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
-                  (nat %amount)
-                  (nat %safety_deposit)
-                  (pair %timelocks
-                     (timestamp %src_withdrawal)
-                     (timestamp %src_public_withdrawal)
-                     (timestamp %src_cancellation)
-                     (timestamp %src_public_cancellation)
-                     (timestamp %dst_withdrawal)
-                     (timestamp %dst_public_withdrawal)
-                     (timestamp %dst_cancellation))))
-            (or (pair %publicWithdraw
-                   (bytes %secret)
-                   (pair %immutables
-                      (bytes %order_hash)
-                      (bytes %hashlock)
-                      (address %maker)
-                      (address %taker)
-                      (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
-                      (nat %amount)
-                      (nat %safety_deposit)
-                      (pair %timelocks
-                         (timestamp %src_withdrawal)
-                         (timestamp %src_public_withdrawal)
-                         (timestamp %src_cancellation)
-                         (timestamp %src_public_cancellation)
-                         (timestamp %dst_withdrawal)
-                         (timestamp %dst_public_withdrawal)
-                         (timestamp %dst_cancellation))))
-                (or (pair %cancel
-                       (bytes %order_hash)
-                       (bytes %hashlock)
-                       (address %maker)
-                       (address %taker)
-                       (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
-                       (nat %amount)
-                       (nat %safety_deposit)
-                       (pair %timelocks
-                          (timestamp %src_withdrawal)
-                          (timestamp %src_public_withdrawal)
-                          (timestamp %src_cancellation)
-                          (timestamp %src_public_cancellation)
-                          (timestamp %dst_withdrawal)
-                          (timestamp %dst_public_withdrawal)
-                          (timestamp %dst_cancellation)))
-                    (pair %publicCancel
-                       (bytes %order_hash)
-                       (bytes %hashlock)
-                       (address %maker)
-                       (address %taker)
-                       (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
-                       (nat %amount)
-                       (nat %safety_deposit)
-                       (pair %timelocks
-                          (timestamp %src_withdrawal)
-                          (timestamp %src_public_withdrawal)
-                          (timestamp %src_cancellation)
-                          (timestamp %src_public_cancellation)
-                          (timestamp %dst_withdrawal)
-                          (timestamp %dst_public_withdrawal)
-                          (timestamp %dst_cancellation))))))) ;
-  storage bytes ;
+    (or (bytes %withdraw)
+        (or (pair %withdrawTo (bytes %secret) (address %target))
+            (or (bytes %publicWithdraw) (or (unit %cancel) (unit %publicCancel))))) ;
+  storage
+    (pair (bytes %order_hash)
+          (bytes %hashlock)
+          (address %maker)
+          (address %taker)
+          (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
+          (nat %amount)
+          (nat %safety_deposit)
+          (pair %timelocks
+             (timestamp %src_withdrawal)
+             (timestamp %src_public_withdrawal)
+             (timestamp %src_cancellation)
+             (timestamp %src_public_cancellation)
+             (timestamp %dst_withdrawal)
+             (timestamp %dst_public_withdrawal)
+             (timestamp %dst_cancellation))) ;
   code { UNPAIR ;
          PUSH string "TEZ_IN_TRANSACTION_DISALLOWED" ;
          PUSH mutez 0 ;
@@ -97,16 +28,16 @@
          IF_LEFT
            { DUP 2 ;
              SWAP ;
-             UNPAIR ;
+             DIG 2 ;
              PUSH string "ONLY_TAKER" ;
-             DUP 3 ;
+             DUP 2 ;
              GET 7 ;
              SENDER ;
              COMPARE ;
              EQ ;
              IF { DROP } { FAILWITH } ;
              NOW ;
-             DUP 3 ;
+             DUP 2 ;
              GET 14 ;
              CAR ;
              SWAP ;
@@ -114,25 +45,15 @@
              GE ;
              IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
              NOW ;
-             DUP 3 ;
+             DUP 2 ;
              GET 14 ;
              GET 5 ;
              SWAP ;
              COMPARE ;
              LT ;
              IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
-             DIG 3 ;
-             DIG 2 ;
              SENDER ;
-             DIG 3 ;
-             DUP 3 ;
-             PACK ;
-             KECCAK ;
-             DIG 4 ;
-             SWAP ;
-             COMPARE ;
-             EQ ;
-             IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
+             DIG 2 ;
              KECCAK ;
              DUP 3 ;
              GET 3 ;
@@ -195,16 +116,17 @@
            { IF_LEFT
                { DUP 2 ;
                  SWAP ;
-                 UNPAIR 3 ;
+                 UNPAIR ;
+                 DIG 3 ;
                  PUSH string "ONLY_TAKER" ;
-                 DUP 4 ;
+                 DUP 2 ;
                  GET 7 ;
                  SENDER ;
                  COMPARE ;
                  EQ ;
                  IF { DROP } { FAILWITH } ;
                  NOW ;
-                 DUP 4 ;
+                 DUP 2 ;
                  GET 14 ;
                  CAR ;
                  SWAP ;
@@ -212,30 +134,23 @@
                  GE ;
                  IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
                  NOW ;
-                 DUP 4 ;
+                 DUP 2 ;
                  GET 14 ;
                  GET 5 ;
                  SWAP ;
                  COMPARE ;
                  LT ;
                  IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
-                 DUP 3 ;
-                 PACK ;
-                 KECCAK ;
-                 DIG 5 ;
                  SWAP ;
-                 COMPARE ;
-                 EQ ;
-                 IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
                  KECCAK ;
-                 DUP 3 ;
+                 DUP 2 ;
                  GET 3 ;
                  SWAP ;
                  COMPARE ;
                  EQ ;
                  IF {} { PUSH string "INVALID_SECRET" ; FAILWITH } ;
                  NIL operation ;
-                 DUP 3 ;
+                 DUP 2 ;
                  GET 13 ;
                  SENDER ;
                  CONTRACT unit ;
@@ -246,9 +161,9 @@
                  UNIT ;
                  TRANSFER_TOKENS ;
                  CONS ;
-                 DUP 3 ;
+                 DUP 2 ;
                  GET 11 ;
-                 DIG 2 ;
+                 DIG 3 ;
                  SELF_ADDRESS ;
                  DIG 4 ;
                  GET 9 ;
@@ -289,9 +204,9 @@
                { IF_LEFT
                    { DUP 2 ;
                      SWAP ;
-                     UNPAIR ;
+                     DIG 2 ;
                      NOW ;
-                     DUP 3 ;
+                     DUP 2 ;
                      GET 14 ;
                      GET 3 ;
                      SWAP ;
@@ -299,21 +214,14 @@
                      GE ;
                      IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
                      NOW ;
-                     DUP 3 ;
+                     DUP 2 ;
                      GET 14 ;
                      GET 5 ;
                      SWAP ;
                      COMPARE ;
                      LT ;
                      IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
-                     DUP 2 ;
-                     PACK ;
-                     KECCAK ;
-                     DIG 4 ;
                      SWAP ;
-                     COMPARE ;
-                     EQ ;
-                     IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
                      KECCAK ;
                      DUP 2 ;
                      GET 3 ;
@@ -375,32 +283,25 @@
                              CONS ;
                              TRANSFER_TOKENS } } }
                    { IF_LEFT
-                       { DUP 2 ;
+                       { DROP ;
+                         DUP ;
                          PUSH string "ONLY_TAKER" ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 7 ;
                          SENDER ;
                          COMPARE ;
                          EQ ;
                          IF { DROP } { FAILWITH } ;
                          NOW ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 14 ;
                          GET 5 ;
                          SWAP ;
                          COMPARE ;
                          GE ;
                          IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
-                         DUP 2 ;
-                         PACK ;
-                         KECCAK ;
-                         DIG 3 ;
-                         SWAP ;
-                         COMPARE ;
-                         EQ ;
-                         IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
                          NIL operation ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 13 ;
                          SENDER ;
                          CONTRACT unit ;
@@ -411,12 +312,12 @@
                          UNIT ;
                          TRANSFER_TOKENS ;
                          CONS ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 11 ;
-                         DUP 4 ;
+                         DUP 3 ;
                          GET 5 ;
                          SELF_ADDRESS ;
-                         DIG 5 ;
+                         DIG 4 ;
                          GET 9 ;
                          IF_LEFT
                            { DROP 2 ;
@@ -452,25 +353,18 @@
                                  PAIR ;
                                  CONS ;
                                  TRANSFER_TOKENS } } }
-                       { DUP 2 ;
+                       { DROP ;
+                         DUP ;
                          NOW ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 14 ;
                          GET 7 ;
                          SWAP ;
                          COMPARE ;
                          GE ;
                          IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
-                         DUP 2 ;
-                         PACK ;
-                         KECCAK ;
-                         DIG 3 ;
-                         SWAP ;
-                         COMPARE ;
-                         EQ ;
-                         IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
                          NIL operation ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 13 ;
                          SENDER ;
                          CONTRACT unit ;
@@ -481,12 +375,12 @@
                          UNIT ;
                          TRANSFER_TOKENS ;
                          CONS ;
-                         DUP 3 ;
+                         DUP 2 ;
                          GET 11 ;
-                         DUP 4 ;
+                         DUP 3 ;
                          GET 5 ;
                          SELF_ADDRESS ;
-                         DIG 5 ;
+                         DIG 4 ;
                          GET 9 ;
                          IF_LEFT
                            { DROP 2 ;

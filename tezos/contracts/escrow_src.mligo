@@ -4,31 +4,24 @@
 #import "common/types.mligo" "Types"
 
 type storage = { 
-  salt: bytes; // keccak256 hash of immutables
+  immutables : Types.immutables;
 }
 
 type withdraw = { 
   secret : bytes;
-  immutables : Types.immutables;
 }
 
 type withdraw_to = { 
   secret : bytes;
   target : address;
-  immutables : Types.immutables;
-}
-
-type public_withdraw = { 
-  secret : bytes;
-  immutables : Types.immutables;
 }
 
 type parameter =
   | Withdraw of withdraw
   | WithdrawTo of withdraw_to
-  | PublicWithdraw of public_withdraw
-  | Cancel of Types.immutables
-  | PublicCancel of Types.immutables
+  | PublicWithdraw of withdraw
+  | Cancel
+  | PublicCancel
 
 type result = operation list * storage
 
@@ -37,9 +30,7 @@ let _withdraw_to
     (secret : bytes)
     (target: address) 
     (immutables : Types.immutables)
-    (storage : storage)
     : operation list =
-  let () = Validation.assert_valid_immutables immutables storage.salt in
   let () = Validation.assert_valid_secret secret immutables.hashlock in
   [
     Tokens.transfer immutables.token (Tezos.get_self_address ()) target immutables.amount;
@@ -47,56 +38,52 @@ let _withdraw_to
   ]
 
 let withdraw 
-    ({secret; immutables} : withdraw) 
-    (storage : storage) 
+    ({secret} : withdraw) 
+    ({immutables} : storage) 
     : operation list =
   let () = Validation.assert_only_taker immutables in
   let () = Validation.assert_only_after immutables.timelocks.src_withdrawal in
   let () = Validation.assert_only_before immutables.timelocks.src_cancellation in
-  _withdraw_to secret (Tezos.get_sender ()) immutables storage
+  _withdraw_to secret (Tezos.get_sender ()) immutables
 
 let withdraw_to
-    ({secret; target; immutables} : withdraw_to) 
-    (storage : storage) 
+    ({secret; target} : withdraw_to) 
+    ({immutables} : storage) 
     : operation list =
   let () = Validation.assert_only_taker immutables in
   let () = Validation.assert_only_after immutables.timelocks.src_withdrawal in
   let () = Validation.assert_only_before immutables.timelocks.src_cancellation in
-  _withdraw_to secret target immutables storage
+  _withdraw_to secret target immutables
 
-let public_withdraw 
-    ({secret; immutables} : public_withdraw) 
-    (storage : storage) 
+let public_withdraw
+    ({secret} : withdraw)
+    ({immutables} : storage)
     : operation list =
   let () = Validation.assert_only_after immutables.timelocks.src_public_withdrawal in
   let () = Validation.assert_only_before immutables.timelocks.src_cancellation in
-  _withdraw_to secret immutables.taker immutables storage
+  _withdraw_to secret immutables.taker immutables
 
 [@inline]
 let _cancel
     (immutables : Types.immutables)
-    (storage : storage)
     : operation list =
-  let () = Validation.assert_valid_immutables immutables storage.salt in
   [
     Tokens.transfer immutables.token (Tezos.get_self_address ()) immutables.maker immutables.amount;
     Tokens.transfer_tez (Tezos.get_sender ()) immutables.safety_deposit
   ]
 
-let cancel 
-    (immutables : Types.immutables) 
-    (storage : storage) 
+let cancel
+    ({immutables} : storage)
     : operation list =
   let () = Validation.assert_only_taker immutables in
   let () = Validation.assert_only_after immutables.timelocks.src_cancellation in
-  _cancel immutables storage
+  _cancel immutables
 
 let public_cancel
-    (immutables : Types.immutables)
-    (storage : storage)
+    ({immutables} : storage)
     : operation list =
   let () = Validation.assert_only_after immutables.timelocks.src_public_cancellation in
-  _cancel immutables storage
+  _cancel immutables
 
 [@entry] 
 let main (param : parameter) (storage : storage) : result =
@@ -105,8 +92,8 @@ let main (param : parameter) (storage : storage) : result =
     | Withdraw param -> (withdraw param storage, storage)
     | WithdrawTo param -> (withdraw_to param storage, storage)
     | PublicWithdraw param -> (public_withdraw param storage, storage)
-    | Cancel immutables -> (cancel immutables storage, storage)
-    | PublicCancel immutables -> (public_cancel immutables storage, storage)
+    | Cancel -> (cancel storage, storage)
+    | PublicCancel -> (public_cancel storage, storage)
 
 
 let originate_escrow_src
