@@ -1,0 +1,19 @@
+{
+  "name": "@baking-bad/1inch-fusion-plus",
+  "workspaces": [
+    "packages/server",
+    "packages/client"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.9.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@stylistic/eslint-plugin": "^5.2.2",
+    "@types/node": "^24.1.0",
+    "eslint": "^9.32.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0"
+  }
+}
