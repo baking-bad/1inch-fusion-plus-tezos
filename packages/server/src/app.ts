@@ -27,9 +27,11 @@ export class App {
       //
 
       console.log('Server stopped successfully');
+      return true;
     }
     catch (error) {
       console.error('Error during shutdown:', error);
+      return false;
     }
   }
 
