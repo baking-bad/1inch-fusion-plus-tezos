@@ -65,22 +65,28 @@ export class App {
   }
 
   private swapCommandHandler = async (inputCommand: string, ...args: string[]) => {
-    const [rawAmount, rawSrcChainAndToken, rawDstChainAndToken, ...excessArgs] = args;
+    const [rawInputAmount, rawSrcChainAndToken, rawOutputAmount, rawDstChainAndToken, ...excessArgs] = args;
 
-    if (args.length < 3) {
-      console.error(`Usage: ${inputCommand} <amount> <srcChain>:<srcToken> <dstChain>:dstToken>`);
+    if (args.length < 4) {
+      console.error(`Usage: ${inputCommand} <inputAmount> <srcChain>:<srcToken> <outputAmount> <dstChain>:dstToken>`);
       return;
     }
 
-    const amount = Number(rawAmount);
-    if (!utils.validation.isNonNegativeNumber(amount)) {
-      console.error('Invalid amount:', rawAmount);
+    const inputAmount = Number(rawInputAmount);
+    if (!utils.validation.isNonNegativeNumber(inputAmount)) {
+      console.error('Invalid input amount:', rawInputAmount);
       return;
     }
 
     const [srcChain, srcToken] = rawSrcChainAndToken!.split(':', 2);
     if (!srcChain || !srcToken) {
       console.error('Invalid source chain and token:', rawSrcChainAndToken);
+      return;
+    }
+
+    const outputAmount = Number(rawOutputAmount);
+    if (!utils.validation.isNonNegativeNumber(outputAmount)) {
+      console.error('Invalid output amount:', rawOutputAmount);
       return;
     }
 
@@ -95,7 +101,7 @@ export class App {
       console.warn('These will be ignored.');
     }
 
-    console.log(`Swapping ${amount} from ${srcToken} [${srcChain}] to ${dstToken} [${dstChain}]...`);
+    console.log(`Swapping ${inputAmount} ${srcToken} [${srcChain}] to ${outputAmount} ${dstToken} [${dstChain}]...`);
   };
 
   private helpCommandHandler = (_inputCommand: string) => {
