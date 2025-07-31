@@ -18,12 +18,16 @@ interface EvmChainConfig {
   readonly wrappedNativeTokenAddress: string;
   readonly tokens: ReadonlyMap<string, Erc20Token>;
   readonly donorTokenAddresses: ReadonlyMap<string, string>;
+  readonly escrowFactoryAddress: string;
+  readonly resolverAddress: string;
 }
 
 interface TezosChainConfig {
   readonly userPrivateKey: string;
   readonly rpcUrl: string;
   readonly tokens: ReadonlyMap<string, TezosToken>;
+  readonly escrowFactoryAddress: string;
+  readonly resolverAddress: string;
 }
 
 export interface Config {
@@ -40,6 +44,14 @@ const createEvmChainConfig = (): EvmChainConfig => {
   const rpcUrl = process.env.EVM_CHAIN__RPC_URL;
   if (!rpcUrl)
     throw new Error('The EVM_CHAIN__RPC_URL is not specified');
+
+  const escrowFactoryAddress = process.env.EVM_CHAIN__ESCROW_FACTORY_ADDRESS;
+  if (!escrowFactoryAddress)
+    throw new Error('The EVM_CHAIN__ESCROW_FACTORY_ADDRESS is not specified');
+
+  const resolverAddress = process.env.EVM_CHAIN__RESOLVER_ADDRESS;
+  if (!resolverAddress)
+    throw new Error('The EVM_CHAIN__RESOLVER_ADDRESS is not specified');
 
   const ethereumTokens = new Map<string, Erc20Token>([
     {
@@ -61,6 +73,8 @@ const createEvmChainConfig = (): EvmChainConfig => {
     wrappedNativeTokenAddress: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     tokens: ethereumTokens,
     donorTokenAddresses,
+    escrowFactoryAddress,
+    resolverAddress,
   };
 };
 
@@ -72,6 +86,14 @@ const createTezosChainConfig = (): TezosChainConfig => {
   const rpcUrl = process.env.TEZOS_CHAIN__RPC_URL;
   if (!rpcUrl)
     throw new Error('The TEZOS_CHAIN__RPC_URL is not specified');
+
+  const escrowFactoryAddress = process.env.TEZOS_CHAIN__ESCROW_FACTORY_ADDRESS;
+  if (!escrowFactoryAddress)
+    throw new Error('The TEZOS_CHAIN__ESCROW_FACTORY_ADDRESS is not specified');
+
+  const resolverAddress = process.env.TEZOS_CHAIN__RESOLVER_ADDRESS;
+  if (!resolverAddress)
+    throw new Error('The TEZOS_CHAIN__RESOLVER_ADDRESS is not specified');
 
   const tezosTokens = new Map<string, TezosToken>(([
     {
@@ -86,6 +108,8 @@ const createTezosChainConfig = (): TezosChainConfig => {
     userPrivateKey,
     rpcUrl,
     tokens: tezosTokens,
+    escrowFactoryAddress,
+    resolverAddress,
   };
 };
 

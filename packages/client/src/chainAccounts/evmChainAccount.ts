@@ -14,9 +14,10 @@ interface EvmChainAccountOptions {
 const coder = AbiCoder.defaultAbiCoder();
 
 export class EvmChainAccount {
-  protected readonly chainId: number;
-  protected readonly provider: JsonRpcProvider;
-  protected readonly signer: Signer;
+  readonly chainId: number;
+  readonly provider: JsonRpcProvider;
+  readonly signer: Signer;
+
   protected readonly tokens: ReadonlyMap<string, Erc20Token>;
   protected readonly donorTokenAddresses: ReadonlyMap<string, string>;
 

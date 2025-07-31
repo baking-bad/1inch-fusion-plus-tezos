@@ -31,4 +31,8 @@ export class TezosChainAccount {
   getAddress(): Promise<string> {
     return this.tezosToolkit.signer.publicKeyHash();
   }
+
+  getToken(tokenSymbol: string): TezosToken | undefined {
+    return this.tokens.get(tokenSymbol.toLowerCase());
+  }
 }

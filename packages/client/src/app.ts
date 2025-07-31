@@ -5,6 +5,7 @@ import { parseUnits, formatUnits } from 'ethers';
 import utils from './utils/index.js';
 import config from './config.js';
 import { EvmChainAccount, TezosChainAccount } from './chainAccounts/index.js';
+import { SwapManager } from './swapManager.js';
 
 type Command = [aliases: readonly string[], handler: (inputCommand: string, ...args: any) => (void | Promise<void>), description?: string];
 
@@ -13,6 +14,7 @@ export class App {
   protected readonly commands: Command[] = [];
   protected readonly evmAccount: EvmChainAccount;
   protected readonly tezosAccount: TezosChainAccount;
+  protected readonly swapManager: SwapManager;
 
   constructor() {
     this.commands = [
@@ -41,6 +43,7 @@ export class App {
       rpcUrl: config.tezosChain.rpcUrl,
       tokens: config.tezosChain.tokens,
     });
+    this.swapManager = new SwapManager(this.evmAccount, this.tezosAccount);
   }
 
   async start() {
@@ -150,6 +153,26 @@ export class App {
     }
 
     console.log(`Swapping ${inputAmount} ${srcToken} [${srcChain}] to ${outputAmount} ${dstToken} [${dstChain}]...`);
+
+    if (this.isEvmChain(srcChain)) {
+      const srcErc20Token = this.evmAccount.getToken(srcToken);
+      if (!srcErc20Token) {
+        console.error(`Token ${srcToken} not found on EVM chain`);
+        return;
+      }
+
+      const dstTezosToken = this.tezosAccount.getToken(dstToken);
+      if (!dstTezosToken) {
+        console.error(`Token ${dstToken} not found on Tezos chain`);
+        return;
+      }
+
+      const result = await this.swapManager.createEvmOrder(inputAmount, srcErc20Token, outputAmount, dstTezosToken);
+      console.log('Swap order created successfully:');
+      console.log('Order:', result.order);
+      console.log('Signature:', result.signature);
+      console.log('Order Hash:', result.orderHash);
+    }
   };
 
   private topUpCommandHandler = async (inputCommand: string, ...args: string[]) => {
