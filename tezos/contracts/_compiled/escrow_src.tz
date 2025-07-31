@@ -1,0 +1,527 @@
+{ parameter
+    (or (pair %withdraw
+           (bytes %secret)
+           (pair %immutables
+              (bytes %order_hash)
+              (bytes %hashlock)
+              (address %maker)
+              (address %taker)
+              (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
+              (nat %amount)
+              (nat %safety_deposit)
+              (pair %timelocks
+                 (timestamp %src_withdrawal)
+                 (timestamp %src_public_withdrawal)
+                 (timestamp %src_cancellation)
+                 (timestamp %src_public_cancellation)
+                 (timestamp %dst_withdrawal)
+                 (timestamp %dst_public_withdrawal)
+                 (timestamp %dst_cancellation))))
+        (or (pair %withdrawTo
+               (bytes %secret)
+               (address %target)
+               (pair %immutables
+                  (bytes %order_hash)
+                  (bytes %hashlock)
+                  (address %maker)
+                  (address %taker)
+                  (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
+                  (nat %amount)
+                  (nat %safety_deposit)
+                  (pair %timelocks
+                     (timestamp %src_withdrawal)
+                     (timestamp %src_public_withdrawal)
+                     (timestamp %src_cancellation)
+                     (timestamp %src_public_cancellation)
+                     (timestamp %dst_withdrawal)
+                     (timestamp %dst_public_withdrawal)
+                     (timestamp %dst_cancellation))))
+            (or (pair %publicWithdraw
+                   (bytes %secret)
+                   (pair %immutables
+                      (bytes %order_hash)
+                      (bytes %hashlock)
+                      (address %maker)
+                      (address %taker)
+                      (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
+                      (nat %amount)
+                      (nat %safety_deposit)
+                      (pair %timelocks
+                         (timestamp %src_withdrawal)
+                         (timestamp %src_public_withdrawal)
+                         (timestamp %src_cancellation)
+                         (timestamp %src_public_cancellation)
+                         (timestamp %dst_withdrawal)
+                         (timestamp %dst_public_withdrawal)
+                         (timestamp %dst_cancellation))))
+                (or (pair %cancel
+                       (bytes %order_hash)
+                       (bytes %hashlock)
+                       (address %maker)
+                       (address %taker)
+                       (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
+                       (nat %amount)
+                       (nat %safety_deposit)
+                       (pair %timelocks
+                          (timestamp %src_withdrawal)
+                          (timestamp %src_public_withdrawal)
+                          (timestamp %src_cancellation)
+                          (timestamp %src_public_cancellation)
+                          (timestamp %dst_withdrawal)
+                          (timestamp %dst_public_withdrawal)
+                          (timestamp %dst_cancellation)))
+                    (pair %publicCancel
+                       (bytes %order_hash)
+                       (bytes %hashlock)
+                       (address %maker)
+                       (address %taker)
+                       (or %token (unit %tEZ) (or (address %fA12) (pair %fA2 address nat)))
+                       (nat %amount)
+                       (nat %safety_deposit)
+                       (pair %timelocks
+                          (timestamp %src_withdrawal)
+                          (timestamp %src_public_withdrawal)
+                          (timestamp %src_cancellation)
+                          (timestamp %src_public_cancellation)
+                          (timestamp %dst_withdrawal)
+                          (timestamp %dst_public_withdrawal)
+                          (timestamp %dst_cancellation))))))) ;
+  storage bytes ;
+  code { UNPAIR ;
+         PUSH string "TEZ_IN_TRANSACTION_DISALLOWED" ;
+         PUSH mutez 0 ;
+         AMOUNT ;
+         COMPARE ;
+         EQ ;
+         IF { DROP } { FAILWITH } ;
+         IF_LEFT
+           { DUP 2 ;
+             SWAP ;
+             UNPAIR ;
+             PUSH string "ONLY_TAKER" ;
+             DUP 3 ;
+             GET 7 ;
+             SENDER ;
+             COMPARE ;
+             EQ ;
+             IF { DROP } { FAILWITH } ;
+             NOW ;
+             DUP 3 ;
+             GET 14 ;
+             CAR ;
+             SWAP ;
+             COMPARE ;
+             GE ;
+             IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+             NOW ;
+             DUP 3 ;
+             GET 14 ;
+             GET 5 ;
+             SWAP ;
+             COMPARE ;
+             LT ;
+             IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+             DIG 3 ;
+             DIG 2 ;
+             SENDER ;
+             DIG 3 ;
+             DUP 3 ;
+             PACK ;
+             KECCAK ;
+             DIG 4 ;
+             SWAP ;
+             COMPARE ;
+             EQ ;
+             IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
+             KECCAK ;
+             DUP 3 ;
+             GET 3 ;
+             SWAP ;
+             COMPARE ;
+             EQ ;
+             IF {} { PUSH string "INVALID_SECRET" ; FAILWITH } ;
+             NIL operation ;
+             DUP 3 ;
+             GET 13 ;
+             SENDER ;
+             CONTRACT unit ;
+             IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+             PUSH mutez 1 ;
+             DIG 2 ;
+             MUL ;
+             UNIT ;
+             TRANSFER_TOKENS ;
+             CONS ;
+             DUP 3 ;
+             GET 11 ;
+             DIG 2 ;
+             SELF_ADDRESS ;
+             DIG 4 ;
+             GET 9 ;
+             IF_LEFT
+               { DROP 2 ;
+                 CONTRACT unit ;
+                 IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                 PUSH mutez 1 ;
+                 DIG 2 ;
+                 MUL ;
+                 UNIT ;
+                 TRANSFER_TOKENS }
+               { IF_LEFT
+                   { CONTRACT %transfer (pair (address %from) (address %to) (nat %value)) ;
+                     IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                     PUSH mutez 0 ;
+                     DIG 4 ;
+                     DIG 4 ;
+                     DIG 4 ;
+                     PAIR 3 ;
+                     TRANSFER_TOKENS }
+                   { UNPAIR ;
+                     CONTRACT %transfer
+                       (list (pair (address %from) (list %txs (pair (address %to) (nat %token_id) (nat %amount))))) ;
+                     IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                     PUSH mutez 0 ;
+                     NIL (pair address (list (pair address nat nat))) ;
+                     NIL (pair address nat nat) ;
+                     DIG 7 ;
+                     DIG 5 ;
+                     DIG 7 ;
+                     PAIR 3 ;
+                     CONS ;
+                     DIG 4 ;
+                     PAIR ;
+                     CONS ;
+                     TRANSFER_TOKENS } } }
+           { IF_LEFT
+               { DUP 2 ;
+                 SWAP ;
+                 UNPAIR 3 ;
+                 PUSH string "ONLY_TAKER" ;
+                 DUP 4 ;
+                 GET 7 ;
+                 SENDER ;
+                 COMPARE ;
+                 EQ ;
+                 IF { DROP } { FAILWITH } ;
+                 NOW ;
+                 DUP 4 ;
+                 GET 14 ;
+                 CAR ;
+                 SWAP ;
+                 COMPARE ;
+                 GE ;
+                 IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+                 NOW ;
+                 DUP 4 ;
+                 GET 14 ;
+                 GET 5 ;
+                 SWAP ;
+                 COMPARE ;
+                 LT ;
+                 IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+                 DUP 3 ;
+                 PACK ;
+                 KECCAK ;
+                 DIG 5 ;
+                 SWAP ;
+                 COMPARE ;
+                 EQ ;
+                 IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
+                 KECCAK ;
+                 DUP 3 ;
+                 GET 3 ;
+                 SWAP ;
+                 COMPARE ;
+                 EQ ;
+                 IF {} { PUSH string "INVALID_SECRET" ; FAILWITH } ;
+                 NIL operation ;
+                 DUP 3 ;
+                 GET 13 ;
+                 SENDER ;
+                 CONTRACT unit ;
+                 IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                 PUSH mutez 1 ;
+                 DIG 2 ;
+                 MUL ;
+                 UNIT ;
+                 TRANSFER_TOKENS ;
+                 CONS ;
+                 DUP 3 ;
+                 GET 11 ;
+                 DIG 2 ;
+                 SELF_ADDRESS ;
+                 DIG 4 ;
+                 GET 9 ;
+                 IF_LEFT
+                   { DROP 2 ;
+                     CONTRACT unit ;
+                     IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                     PUSH mutez 1 ;
+                     DIG 2 ;
+                     MUL ;
+                     UNIT ;
+                     TRANSFER_TOKENS }
+                   { IF_LEFT
+                       { CONTRACT %transfer (pair (address %from) (address %to) (nat %value)) ;
+                         IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                         PUSH mutez 0 ;
+                         DIG 4 ;
+                         DIG 4 ;
+                         DIG 4 ;
+                         PAIR 3 ;
+                         TRANSFER_TOKENS }
+                       { UNPAIR ;
+                         CONTRACT %transfer
+                           (list (pair (address %from) (list %txs (pair (address %to) (nat %token_id) (nat %amount))))) ;
+                         IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                         PUSH mutez 0 ;
+                         NIL (pair address (list (pair address nat nat))) ;
+                         NIL (pair address nat nat) ;
+                         DIG 7 ;
+                         DIG 5 ;
+                         DIG 7 ;
+                         PAIR 3 ;
+                         CONS ;
+                         DIG 4 ;
+                         PAIR ;
+                         CONS ;
+                         TRANSFER_TOKENS } } }
+               { IF_LEFT
+                   { DUP 2 ;
+                     SWAP ;
+                     UNPAIR ;
+                     NOW ;
+                     DUP 3 ;
+                     GET 14 ;
+                     GET 3 ;
+                     SWAP ;
+                     COMPARE ;
+                     GE ;
+                     IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+                     NOW ;
+                     DUP 3 ;
+                     GET 14 ;
+                     GET 5 ;
+                     SWAP ;
+                     COMPARE ;
+                     LT ;
+                     IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+                     DUP 2 ;
+                     PACK ;
+                     KECCAK ;
+                     DIG 4 ;
+                     SWAP ;
+                     COMPARE ;
+                     EQ ;
+                     IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
+                     KECCAK ;
+                     DUP 2 ;
+                     GET 3 ;
+                     SWAP ;
+                     COMPARE ;
+                     EQ ;
+                     IF {} { PUSH string "INVALID_SECRET" ; FAILWITH } ;
+                     NIL operation ;
+                     DUP 2 ;
+                     GET 13 ;
+                     SENDER ;
+                     CONTRACT unit ;
+                     IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                     PUSH mutez 1 ;
+                     DIG 2 ;
+                     MUL ;
+                     UNIT ;
+                     TRANSFER_TOKENS ;
+                     CONS ;
+                     DUP 2 ;
+                     GET 11 ;
+                     DUP 3 ;
+                     GET 7 ;
+                     SELF_ADDRESS ;
+                     DIG 4 ;
+                     GET 9 ;
+                     IF_LEFT
+                       { DROP 2 ;
+                         CONTRACT unit ;
+                         IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                         PUSH mutez 1 ;
+                         DIG 2 ;
+                         MUL ;
+                         UNIT ;
+                         TRANSFER_TOKENS }
+                       { IF_LEFT
+                           { CONTRACT %transfer (pair (address %from) (address %to) (nat %value)) ;
+                             IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                             PUSH mutez 0 ;
+                             DIG 4 ;
+                             DIG 4 ;
+                             DIG 4 ;
+                             PAIR 3 ;
+                             TRANSFER_TOKENS }
+                           { UNPAIR ;
+                             CONTRACT %transfer
+                               (list (pair (address %from) (list %txs (pair (address %to) (nat %token_id) (nat %amount))))) ;
+                             IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                             PUSH mutez 0 ;
+                             NIL (pair address (list (pair address nat nat))) ;
+                             NIL (pair address nat nat) ;
+                             DIG 7 ;
+                             DIG 5 ;
+                             DIG 7 ;
+                             PAIR 3 ;
+                             CONS ;
+                             DIG 4 ;
+                             PAIR ;
+                             CONS ;
+                             TRANSFER_TOKENS } } }
+                   { IF_LEFT
+                       { DUP 2 ;
+                         PUSH string "ONLY_TAKER" ;
+                         DUP 3 ;
+                         GET 7 ;
+                         SENDER ;
+                         COMPARE ;
+                         EQ ;
+                         IF { DROP } { FAILWITH } ;
+                         NOW ;
+                         DUP 3 ;
+                         GET 14 ;
+                         GET 5 ;
+                         SWAP ;
+                         COMPARE ;
+                         GE ;
+                         IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+                         DUP 2 ;
+                         PACK ;
+                         KECCAK ;
+                         DIG 3 ;
+                         SWAP ;
+                         COMPARE ;
+                         EQ ;
+                         IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
+                         NIL operation ;
+                         DUP 3 ;
+                         GET 13 ;
+                         SENDER ;
+                         CONTRACT unit ;
+                         IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                         PUSH mutez 1 ;
+                         DIG 2 ;
+                         MUL ;
+                         UNIT ;
+                         TRANSFER_TOKENS ;
+                         CONS ;
+                         DUP 3 ;
+                         GET 11 ;
+                         DUP 4 ;
+                         GET 5 ;
+                         SELF_ADDRESS ;
+                         DIG 5 ;
+                         GET 9 ;
+                         IF_LEFT
+                           { DROP 2 ;
+                             CONTRACT unit ;
+                             IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                             PUSH mutez 1 ;
+                             DIG 2 ;
+                             MUL ;
+                             UNIT ;
+                             TRANSFER_TOKENS }
+                           { IF_LEFT
+                               { CONTRACT %transfer (pair (address %from) (address %to) (nat %value)) ;
+                                 IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                                 PUSH mutez 0 ;
+                                 DIG 4 ;
+                                 DIG 4 ;
+                                 DIG 4 ;
+                                 PAIR 3 ;
+                                 TRANSFER_TOKENS }
+                               { UNPAIR ;
+                                 CONTRACT %transfer
+                                   (list (pair (address %from) (list %txs (pair (address %to) (nat %token_id) (nat %amount))))) ;
+                                 IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                                 PUSH mutez 0 ;
+                                 NIL (pair address (list (pair address nat nat))) ;
+                                 NIL (pair address nat nat) ;
+                                 DIG 7 ;
+                                 DIG 5 ;
+                                 DIG 7 ;
+                                 PAIR 3 ;
+                                 CONS ;
+                                 DIG 4 ;
+                                 PAIR ;
+                                 CONS ;
+                                 TRANSFER_TOKENS } } }
+                       { DUP 2 ;
+                         NOW ;
+                         DUP 3 ;
+                         GET 14 ;
+                         GET 7 ;
+                         SWAP ;
+                         COMPARE ;
+                         GE ;
+                         IF {} { PUSH string "INVALID_TIME" ; FAILWITH } ;
+                         DUP 2 ;
+                         PACK ;
+                         KECCAK ;
+                         DIG 3 ;
+                         SWAP ;
+                         COMPARE ;
+                         EQ ;
+                         IF {} { PUSH string "INVALID_IMMUTABLES" ; FAILWITH } ;
+                         NIL operation ;
+                         DUP 3 ;
+                         GET 13 ;
+                         SENDER ;
+                         CONTRACT unit ;
+                         IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                         PUSH mutez 1 ;
+                         DIG 2 ;
+                         MUL ;
+                         UNIT ;
+                         TRANSFER_TOKENS ;
+                         CONS ;
+                         DUP 3 ;
+                         GET 11 ;
+                         DUP 4 ;
+                         GET 5 ;
+                         SELF_ADDRESS ;
+                         DIG 5 ;
+                         GET 9 ;
+                         IF_LEFT
+                           { DROP 2 ;
+                             CONTRACT unit ;
+                             IF_NONE { PUSH string "bad address for get_contract" ; FAILWITH } {} ;
+                             PUSH mutez 1 ;
+                             DIG 2 ;
+                             MUL ;
+                             UNIT ;
+                             TRANSFER_TOKENS }
+                           { IF_LEFT
+                               { CONTRACT %transfer (pair (address %from) (address %to) (nat %value)) ;
+                                 IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                                 PUSH mutez 0 ;
+                                 DIG 4 ;
+                                 DIG 4 ;
+                                 DIG 4 ;
+                                 PAIR 3 ;
+                                 TRANSFER_TOKENS }
+                               { UNPAIR ;
+                                 CONTRACT %transfer
+                                   (list (pair (address %from) (list %txs (pair (address %to) (nat %token_id) (nat %amount))))) ;
+                                 IF_NONE { PUSH string "bad address for get_entrypoint" ; FAILWITH } {} ;
+                                 PUSH mutez 0 ;
+                                 NIL (pair address (list (pair address nat nat))) ;
+                                 NIL (pair address nat nat) ;
+                                 DIG 7 ;
+                                 DIG 5 ;
+                                 DIG 7 ;
+                                 PAIR 3 ;
+                                 CONS ;
+                                 DIG 4 ;
+                                 PAIR ;
+                                 CONS ;
+                                 TRANSFER_TOKENS } } } } } } ;
+         CONS ;
+         PAIR } }
+

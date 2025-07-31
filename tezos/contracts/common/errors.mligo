@@ -1,0 +1,6 @@
+[@inline] let tez_in_transaction_disallowed = "TEZ_IN_TRANSACTION_DISALLOWED"
+[@inline] let only_taker = "ONLY_TAKER"
+[@inline] let invalid_immutables = "INVALID_IMMUTABLES"
+[@inline] let invalid_secret = "INVALID_SECRET"
+[@inline] let invalid_time = "INVALID_TIME"
+[@inline] let invalid_transaction_amount = "INVALID_TRANSACTION_AMOUNT"

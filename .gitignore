@@ -5,3 +5,4 @@ dist
 coverage/
 *.log
 .env
+tezos/contracts/.ligo
