@@ -24,5 +24,10 @@
   ],
   "cSpell.enabled": true,
   "cSpell.language": "en",
-  "cSpell.words": [],
+  "cSpell.words": [
+    "etherlink",
+    "ghostnet",
+    "taquito",
+    "tezos"
+  ],
 }

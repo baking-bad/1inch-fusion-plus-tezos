@@ -2,12 +2,20 @@ import express, { type Express, type Router, type Request, type Response, type N
 
 import config from './config.js';
 import { getIndexRouter } from './routes/index.js';
+import { Resolver, TaquitoContractTezosBridgeBlockchainService } from './services/resolver/index.js';
+import { ChainIds } from './models/chain.js';
+
+interface AppServices {
+  resolver: Resolver;
+}
 
 export class App {
+  readonly services: AppServices;
   readonly indexRouter: Router;
   readonly express: Express;
 
   constructor() {
+    this.services = this.createServices();
     this.indexRouter = getIndexRouter(this);
     this.express = this.createExpressApp(this.indexRouter);
   }
@@ -33,6 +41,16 @@ export class App {
       console.error('Error during shutdown:', error);
       return false;
     }
+  }
+
+  protected createServices(): AppServices {
+    const resolver = new Resolver(new Map([
+      new TaquitoContractTezosBridgeBlockchainService(ChainIds.TezosGhostnet),
+    ].map(service => [service.chainId, service])));
+
+    return {
+      resolver,
+    };
   }
 
   protected createExpressApp(indexRouter: Router) {
