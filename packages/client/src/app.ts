@@ -1,5 +1,7 @@
 import readline, { Interface as ReadlineInterface } from 'node:readline';
 
+import { parseUnits, formatUnits } from 'ethers';
+
 import utils from './utils/index.js';
 import config from './config.js';
 import { EvmChainAccount, TezosChainAccount } from './chainAccounts/index.js';
@@ -155,7 +157,12 @@ export class App {
       return;
     }
 
-    const amount = BigInt(rawAmount!);
+    const amount = Number(rawAmount);
+    if (!utils.validation.isNonNegativeNumber(amount)) {
+      console.error('Invalid amount:', rawAmount);
+      return;
+    }
+
     const [chainName, tokenName] = rawChainAndToken!.split(':', 2);
     if (!chainName || !tokenName) {
       console.error('Invalid chain and token:', rawChainAndToken);
@@ -169,7 +176,7 @@ export class App {
         return;
       }
 
-      await this.evmAccount.topUpFromDonor(token.address, amount);
+      await this.evmAccount.topUpFromDonor(token.address, parseUnits(amount.toString(), token.decimals));
       console.log(`Successfully topped up ${amount} from donor for token ${token.address}`);
     }
     else {
@@ -198,7 +205,7 @@ export class App {
       }
 
       const balance = await this.evmAccount.getTokenBalance(token.address);
-      console.log(`Balance of ${tokenSymbol} on EVM chain: ${balance}`);
+      console.log(`Balance of ${token.symbol} on EVM chain: ${formatUnits(balance, token.decimals)}`);
     }
     else {
       console.warn('Getting balance for Tezos chain is not implemented yet');
