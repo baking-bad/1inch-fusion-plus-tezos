@@ -2,7 +2,8 @@
   "name": "@baking-bad/1inch-fusion-plus",
   "workspaces": [
     "packages/server",
-    "packages/client"
+    "packages/client",
+    "packages/local-evm-node"
   ],
   "engines": {
     "node": ">=22.0.0",
