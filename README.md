@@ -1,2 +1,2 @@
-# 1Inch Fusion+
+# 1inch Fusion+
 
