@@ -1,6 +1,7 @@
 import readline, { Interface as ReadlineInterface } from 'node:readline';
+import utils from './utils/index.js';
 
-type Command = [aliases: readonly string[], handler: (...args: any) => (void | Promise<void>), description?: string];
+type Command = [aliases: readonly string[], handler: (inputCommand: string, ...args: any) => (void | Promise<void>), description?: string];
 
 export class App {
   protected readonly rl: ReadlineInterface;
@@ -10,6 +11,7 @@ export class App {
     this.commands = [
       [['h', 'help'], this.helpCommandHandler, 'Help'],
       [['q', 'exit'], this.exitCommandHandler, 'Exiting the program'],
+      [['s', 'swap'], this.swapCommandHandler, 'Swap tokens'],
     ];
 
     this.rl = readline.createInterface({
@@ -50,7 +52,7 @@ export class App {
 
     if (command) {
       try {
-        await command[1](...args);
+        await command[1](inputCommand, ...args);
       }
       catch (error) {
         console.error(error);
@@ -62,7 +64,41 @@ export class App {
     this.waitForNewCommand();
   }
 
-  private helpCommandHandler = () => {
+  private swapCommandHandler = async (inputCommand: string, ...args: string[]) => {
+    const [rawAmount, rawSrcChainAndToken, rawDstChainAndToken, ...excessArgs] = args;
+
+    if (args.length < 3) {
+      console.error(`Usage: ${inputCommand} <amount> <srcChain>:<srcToken> <dstChain>:dstToken>`);
+      return;
+    }
+
+    const amount = Number(rawAmount);
+    if (!utils.validation.isNonNegativeNumber(amount)) {
+      console.error('Invalid amount:', rawAmount);
+      return;
+    }
+
+    const [srcChain, srcToken] = rawSrcChainAndToken!.split(':', 2);
+    if (!srcChain || !srcToken) {
+      console.error('Invalid source chain and token:', rawSrcChainAndToken);
+      return;
+    }
+
+    const [dstChain, dstToken] = rawDstChainAndToken!.split(':', 2);
+    if (!dstChain || !dstToken) {
+      console.error('Invalid destination chain and token:', rawDstChainAndToken);
+      return;
+    }
+
+    if (excessArgs.length > 0) {
+      console.warn('Excess arguments provided:', excessArgs.join(', '));
+      console.warn('These will be ignored.');
+    }
+
+    console.log(`Swapping ${amount} from ${srcToken} [${srcChain}] to ${dstToken} [${dstChain}]...`);
+  };
+
+  private helpCommandHandler = (_inputCommand: string) => {
     console.log('\nAvailable commands:');
     this.commands.forEach(([commandAliases, _, commandDescription]) => {
       console.log(' *', commandAliases.join(', ').padEnd(20), commandDescription ? commandDescription : '');
@@ -70,7 +106,7 @@ export class App {
     console.log('');
   };
 
-  private exitCommandHandler = async () => {
+  private exitCommandHandler = async (_inputCommand: string) => {
     const isSuccess = await this.stop();
     process.exit(isSuccess ? 0 : 1);
   };
