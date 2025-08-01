@@ -14,6 +14,7 @@
     "npm": ">=10.9.0"
   },
   "dependencies": {
+    "@baking-bad/1inch-fusion-plus-common": "*",
     "@taquito/signer": "^22.0.0",
     "@taquito/taquito": "^22.0.0",
     "dotenv": "^17.2.1",

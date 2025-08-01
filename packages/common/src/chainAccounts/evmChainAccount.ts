@@ -1,7 +1,7 @@
 import { AbiCoder, Contract, Signer, Wallet, JsonRpcProvider } from 'ethers';
 
-import type { Erc20Token } from '../models/tokens.js';
-import ERC20 from '../abi/IERC20.json' with { type: 'json' };
+import type { Erc20Token } from '../models/index.js';
+import ERC20 from '../../../../contracts/evm/compiled/IERC20.sol/IERC20.json' with { type: 'json' };
 
 interface EvmChainAccountOptions {
   userPrivateKey: string;

@@ -1,0 +1,19 @@
+{
+  "name": "@baking-bad/1inch-fusion-plus-common",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "npm run build -- -w",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.9.0"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {}
+}

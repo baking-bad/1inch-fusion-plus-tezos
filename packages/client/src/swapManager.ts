@@ -4,8 +4,8 @@ import Sdk from '@1inch/cross-chain-sdk';
 import { uint8ArrayToHex, UINT_40_MAX } from '@1inch/byte-utils';
 import { keccak256, parseEther, parseUnits } from 'ethers';
 
-import type { EvmChainAccount, TezosChainAccount } from './chainAccounts/index.js';
-import type { Erc20Token, TezosToken } from './models/tokens.js';
+import type { EvmChainAccount, TezosChainAccount, TezosToken, Erc20Token } from '@baking-bad/1inch-fusion-plus-common';
+
 import config from './config.js';
 
 export class SwapManager {

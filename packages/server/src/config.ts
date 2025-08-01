@@ -3,30 +3,12 @@ import { fileURLToPath } from 'url';
 
 import { config as loadEnv } from 'dotenv';
 
-import utils from './utils/index.js';
+import { configHelpers, utils } from '@baking-bad/1inch-fusion-plus-common';
 
 const workingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(workingDirectory, '../.env');
 
 loadEnv({ path: envPath });
-
-function parseIntegerEnvVar(envVarName: string): number | undefined;
-function parseIntegerEnvVar(envVarName: string, defaultValue: number): number;
-function parseIntegerEnvVar(envVarName: string, defaultValue: ErrorConstructor): number;
-function parseIntegerEnvVar(envVarName: string, defaultValue?: number | ErrorConstructor): number | undefined {
-  const rawValue = process.env[envVarName];
-  if (!rawValue) {
-    if (typeof defaultValue === 'function')
-      throw new defaultValue(`The ${envVarName} is not specified`);
-
-    return defaultValue;
-  }
-
-  const value = Number(rawValue);
-  if (!Number.isSafeInteger(value))
-    throw new Error(`The ${envVarName} is invalid: ${rawValue} is not a valid integer`);
-  return value;
-};
 
 interface ServerConfig {
   readonly port: number;
@@ -38,7 +20,7 @@ export interface Config {
 }
 
 const createServerConfig = (): ServerConfig => {
-  const port = parseIntegerEnvVar('SERVER__PORT', 80);
+  const port = configHelpers.parseIntegerEnvVar('SERVER__PORT', 80);
   if (!utils.validation.isValidPort(port))
     throw new Error(`The SERVER__PORT is invalid: ${port} is not a valid port number`);
 

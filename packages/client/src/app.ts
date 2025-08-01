@@ -2,9 +2,9 @@ import readline, { Interface as ReadlineInterface } from 'node:readline';
 
 import { parseUnits, formatUnits } from 'ethers';
 
-import utils from './utils/index.js';
+import { utils, EvmChainAccount, TezosChainAccount } from '@baking-bad/1inch-fusion-plus-common';
+
 import config from './config.js';
-import { EvmChainAccount, TezosChainAccount } from './chainAccounts/index.js';
 import { SwapManager } from './swapManager.js';
 
 type Command = [aliases: readonly string[], handler: (inputCommand: string, ...args: any) => (void | Promise<void>), description?: string];

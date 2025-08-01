@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 
 import { config as loadEnv } from 'dotenv';
 
-import type { TezosToken, Erc20Token } from './models/tokens.js';
+import type { TezosToken, Erc20Token } from '@baking-bad/1inch-fusion-plus-common';
 
 const workingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(workingDirectory, '../.env');

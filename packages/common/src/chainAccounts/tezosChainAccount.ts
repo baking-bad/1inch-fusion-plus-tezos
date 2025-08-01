@@ -1,7 +1,7 @@
 import { TezosToolkit } from '@taquito/taquito';
 import { InMemorySigner } from '@taquito/signer';
 
-import type { TezosToken } from '../models/tokens.js';
+import type { TezosToken } from '../models/index.js';
 
 interface TezosChainAccountOptions {
   userPrivateKey: string;

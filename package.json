@@ -1,6 +1,8 @@
 {
   "name": "@baking-bad/1inch-fusion-plus",
+  "private": true,
   "workspaces": [
+    "packages/common",
     "packages/server",
     "packages/client",
     "packages/local-evm-node"
