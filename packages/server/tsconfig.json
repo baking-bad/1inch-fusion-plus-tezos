@@ -5,7 +5,8 @@
     "outDir": "./dist"
   },
   "include": [
-    "src"
+    "src",
+    "../common/src/models/chain.ts"
   ],
   "references": [
     {

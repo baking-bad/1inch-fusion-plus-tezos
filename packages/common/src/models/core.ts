@@ -1,4 +1,4 @@
-import type { ChainId } from '../../../common/src/models/chain.js';
+import type { ChainId } from './chain.js';
 
 export interface TimeLocks {
   /**
@@ -35,11 +35,17 @@ export interface CrossChainOrderInfo {
   /**
    * Source chain asset
    */
-  makerAsset: string;
+  makerAsset: {
+    address: string;
+    tokenId?: string;
+  };
   /**
    * Destination chain asset
    */
-  takerAsset: string;
+  takerAsset: {
+    address: string;
+    tokenId?: string;
+  };
   /**
    * Source chain amount
    */
@@ -91,6 +97,12 @@ export interface CrossChainOrder {
   // Ignored for demo
   // details: Details;
   extra: CrossChainOrderExtra;
+}
+
+export interface SignedCrossChainOrder {
+  order: CrossChainOrder;
+  signature: string;
+  orderHash: string;
 }
 
 export interface Immutables {

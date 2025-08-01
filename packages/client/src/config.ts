@@ -3,8 +3,6 @@ import { fileURLToPath } from 'url';
 
 import { config as loadEnv } from 'dotenv';
 
-import type { TezosToken, Erc20Token } from '@baking-bad/1inch-fusion-plus-common';
-
 const workingDirectory = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(workingDirectory, '../.env');
 
@@ -13,7 +11,6 @@ loadEnv({ path: envPath });
 interface EvmChainConfig {
   readonly userPrivateKey: string;
   readonly rpcUrl: string;
-  readonly chainId: number;
   readonly escrowFactoryAddress: string;
   readonly resolverAddress: string;
 }
@@ -51,7 +48,6 @@ const createEvmChainConfig = (): EvmChainConfig => {
   return {
     userPrivateKey,
     rpcUrl,
-    chainId: 1,
     escrowFactoryAddress,
     resolverAddress,
   };

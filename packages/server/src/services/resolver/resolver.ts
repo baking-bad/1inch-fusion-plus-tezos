@@ -1,4 +1,4 @@
-import type { ChainId } from '../../models/chain.js';
+import type { ChainId } from '../../../../common/src/models/chain.js';
 import type { CrossChainOrder, Immutables } from '../../models/core.js';
 
 import { ResolverChainService } from './resolverChainService.js';

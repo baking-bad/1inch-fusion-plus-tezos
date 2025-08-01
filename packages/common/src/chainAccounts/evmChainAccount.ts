@@ -1,12 +1,12 @@
 import { AbiCoder, Contract, Wallet, JsonRpcProvider, Signer, type TransactionResponse } from 'ethers';
 
-import type { Erc20Token } from '../models/index.js';
+import type { ChainId, Erc20Token } from '../models/index.js';
 import ERC20 from '../../../../contracts/evm/compiled/IERC20.sol/IERC20.json' with { type: 'json' };
 
 interface EvmChainAccountOptions {
   userPrivateKey: string;
   rpcUrl: string;
-  chainId: number;
+  chainId: ChainId;
   tokens: ReadonlyMap<string, Erc20Token>;
   tokenDonors: ReadonlyMap<string, string>;
 }
@@ -14,7 +14,7 @@ interface EvmChainAccountOptions {
 const coder = AbiCoder.defaultAbiCoder();
 
 export class EvmChainAccount {
-  readonly chainId: number;
+  readonly chainId: ChainId;
   readonly provider: JsonRpcProvider;
   readonly signer: Signer;
 

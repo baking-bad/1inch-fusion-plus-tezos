@@ -3,7 +3,7 @@ import express, { type Express, type Router, type Request, type Response, type N
 import config from './config.js';
 import { getIndexRouter } from './routes/index.js';
 import { Resolver, TaquitoContractTezosBridgeBlockchainService } from './services/resolver/index.js';
-import { ChainIds } from './models/chain.js';
+import { ChainIds } from '../../common/src/models/chain.js';
 
 interface AppServices {
   resolver: Resolver;
