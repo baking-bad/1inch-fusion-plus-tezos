@@ -1,4 +1,4 @@
-import { AbiCoder, Contract, Signer, Wallet, JsonRpcProvider } from 'ethers';
+import { AbiCoder, Contract, Wallet, JsonRpcProvider, Signer } from 'ethers';
 
 import type { Erc20Token } from '../models/index.js';
 import ERC20 from '../../../../contracts/evm/compiled/IERC20.sol/IERC20.json' with { type: 'json' };
