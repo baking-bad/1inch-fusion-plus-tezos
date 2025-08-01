@@ -3,4 +3,5 @@
 [@inline] let invalid_immutables = "INVALID_IMMUTABLES"
 [@inline] let invalid_secret = "INVALID_SECRET"
 [@inline] let invalid_time = "INVALID_TIME"
-[@inline] let invalid_safety_deposit_in_transaction = "INVALID_SAFETY_DEPOSIT_IN_TRANSACTION"
+[@inline] let invalid_tez_amount_in_transaction = "INVALID_TEZ_AMOUNT_IN_TRANSACTION"
+[@inline] let invalid_token_type = "INVALID_TOKEN_TYPE"

@@ -2,6 +2,10 @@ type fa_token =
   | FA12 of address
   | FA2 of address * nat
 
+type token =
+  | FA of fa_token
+  | TEZ
+
 type timelocks = {
   src_withdrawal : timestamp;
   src_public_withdrawal : timestamp;
@@ -17,7 +21,7 @@ type immutables = {
   hashlock : bytes;
   maker : address;
   taker : address;
-  token : fa_token;
+  token : token;
   amount : nat;
   safety_deposit : tez;
   timelocks : timelocks;

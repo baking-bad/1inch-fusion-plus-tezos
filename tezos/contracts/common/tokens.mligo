@@ -47,3 +47,9 @@ let transfer_fa (token : Types.fa_token) (from_ : address) (to_ : address) (amou
   match token with
   | FA12 addr -> transfer_fa12 addr from_ to_ amount
   | FA2 (addr, token_id) -> transfer_fa2 addr token_id from_ to_ amount
+
+[@inline]
+let transfer (token : Types.token) (from_ : address) (to_ : address) (amount : nat) : operation =
+  match token with
+  | FA fa_token -> transfer_fa fa_token from_ to_ amount
+  | TEZ -> transfer_tez to_ (amount * 1mutez)

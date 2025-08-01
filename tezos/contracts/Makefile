@@ -6,10 +6,12 @@ compile:
 	rm -r -f ./${OUTPUT_FOLDER} 
 	mkdir ./${OUTPUT_FOLDER}
 	${LIGO_COMPILER} compile contract escrow_src.mligo -o ${OUTPUT_FOLDER}/escrow_src.tz
+	${LIGO_COMPILER} compile contract escrow_dst.mligo -o ${OUTPUT_FOLDER}/escrow_dst.tz
 	${LIGO_COMPILER} compile contract escrow_factory.mligo -o ${OUTPUT_FOLDER}/escrow_factory.tz
 
 compile_local:
 	rm -r -f ./${OUTPUT_FOLDER} 
 	mkdir ./${OUTPUT_FOLDER}
 	ligo compile contract escrow_src.mligo -o ${OUTPUT_FOLDER}/escrow_src.tz
+	ligo compile contract escrow_dst.mligo -o ${OUTPUT_FOLDER}/escrow_dst.tz
 	ligo compile contract escrow_factory.mligo -o ${OUTPUT_FOLDER}/escrow_factory.tz

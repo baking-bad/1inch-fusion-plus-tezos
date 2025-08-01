@@ -44,9 +44,9 @@ let assert_only_before
   Assert.Error.assert (current_time < timestamp) Errors.invalid_time
 
 [@inline]
-let assert_safety_deposit_in_transaction
-    (immutables : Types.immutables)
+let assert_tez_in_transaction
+    (required_amount : tez)
     : unit =
   Assert.Error.assert 
-    (Tezos.get_amount () = immutables.safety_deposit) 
-    Errors.invalid_safety_deposit_in_transaction
+    (Tezos.get_amount () = required_amount) 
+    Errors.invalid_tez_amount_in_transaction
