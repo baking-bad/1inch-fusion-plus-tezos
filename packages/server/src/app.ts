@@ -23,7 +23,7 @@ export class App {
     this.evmAccount = new EvmChainAccount({
       chainId: ChainIds.Ethereum,
       rpcUrl: config.evmChainConfig.rpcUrl,
-      userPrivateKey: config.evmChainConfig.resolverOwnerPrivateKey,
+      privateKeyOrSigner: config.evmChainConfig.resolverOwnerPrivateKey,
       tokens: ethereumTokens,
       tokenDonors: ethereumTokenDonors,
     });
@@ -48,7 +48,20 @@ export class App {
     console.log('Tezos resolver owner:', await this.tezosAccount.getAddress());
 
     await this.evmAccount.topUpFromDonor(parseEther('10'));
-    await this.evmAccount.topUpFromDonor(ethereumTokens.get('usdc')!.address, parseUnits('100000', 6));
+
+    await this.evmAccount.provider.send('anvil_impersonateAccount', [config.evmChainConfig.resolverAddress]);
+    const resolverContractSigner = await this.evmAccount.provider.getSigner(config.evmChainConfig.resolverAddress);
+    const evmResolverContractAccount = new EvmChainAccount({
+      chainId: ChainIds.Ethereum,
+      rpcUrl: config.evmChainConfig.rpcUrl,
+      privateKeyOrSigner: resolverContractSigner,
+      tokens: ethereumTokens,
+      tokenDonors: ethereumTokenDonors,
+    });
+    const ethUsdcToken = ethereumTokens.get('usdc')!;
+    await evmResolverContractAccount.topUpFromDonor(parseEther('10'));
+    await evmResolverContractAccount.topUpFromDonor(ethUsdcToken.address, parseUnits('100000', 6));
+    await evmResolverContractAccount.approveUnlimited(ethUsdcToken.address, config.evmChainConfig.escrowFactoryAddress);
 
     this.express.listen(config.server.port, () => {
       console.log(`Server started on port ${config.server.port}`);
@@ -73,6 +86,7 @@ export class App {
   protected createServices(): AppServices {
     const resolver = new Resolver({
       evmEscrowFactoryAddress: config.evmChainConfig.escrowFactoryAddress,
+      evmResolverContractAddress: config.evmChainConfig.resolverAddress,
       tezosEscrowFactoryAddress: config.tezosChainConfig.escrowFactoryAddress,
       evmChainAccount: this.evmAccount,
       tezosChainAccount: this.tezosAccount,

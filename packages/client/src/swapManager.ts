@@ -16,10 +16,25 @@ import {
   SignedCrossChainOrder
 } from '@baking-bad/1inch-fusion-plus-common';
 
+import type { ResolverService } from './resolverService.js';
 import config from './config.js';
 
+interface SwapManagerOptions {
+  evmChainAccount: EvmChainAccount;
+  tezosChainAccount: TezosChainAccount;
+  resolverService: ResolverService;
+}
+
 export class SwapManager {
-  constructor(private readonly evmChainAccount: EvmChainAccount, private readonly tezosChainAccount: TezosChainAccount) { }
+  private readonly evmChainAccount: EvmChainAccount;
+  private readonly tezosChainAccount: TezosChainAccount;
+  private readonly resolverService: ResolverService;
+
+  constructor(options: SwapManagerOptions) {
+    this.evmChainAccount = options.evmChainAccount;
+    this.tezosChainAccount = options.tezosChainAccount;
+    this.resolverService = options.resolverService;
+  }
 
   async createOrder(srcAmount: number, srcChainId: ChainId, srcTokenSymbol: string, dstAmount: number, dstChainId: ChainId, dstTokenSymbol: string): Promise<SignedCrossChainOrder> {
     if (srcChainId !== ChainIds.Ethereum)
@@ -55,12 +70,17 @@ export class SwapManager {
     }
   }
 
+  async sendOrder(order: SignedCrossChainOrder) {
+    return this.resolverService.placeOrder(order);
+  }
+
   protected async createOrderFromEvm(inputAmount: number, srcToken: Erc20Token, outputAmount: number, dstToken: TezosToken): Promise<SignedCrossChainOrder> {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.evmChainAccount.getAddress();
     const srcChainId = ChainIds.Ethereum;
     const dstChainId = ChainIds.TezosGhostnet;
+    const orderTimestamp = BigInt((await this.evmChainAccount.provider.getBlock('latest'))!.timestamp);
 
     const order: CrossChainOrder = {
       escrowFactory: config.evmChain.escrowFactoryAddress,
@@ -93,6 +113,21 @@ export class SwapManager {
           dstCancellation: 101n, // 1sec public withdrawal
         },
       },
+      details: {
+        auction: {
+          initialRateBump: 0,
+          points: [],
+          duration: 120n,
+          startTime: orderTimestamp,
+        },
+        whitelist: [
+          {
+            address: config.evmChain.resolverAddress,
+            allowFrom: 0n,
+          },
+        ],
+        resolvingStartTime: 0n,
+      },
       extra: {
         nonce: Sdk.randBigInt(UINT_40_MAX),
         allowPartialFills: false,
@@ -122,13 +157,17 @@ export class SwapManager {
         maker: new Sdk.Address(order.orderInfo.maker),
         makingAmount: order.orderInfo.makingAmount,
         takingAmount: order.orderInfo.takingAmount,
-        makerAsset: new Sdk.Address(order.orderInfo.makerAsset.address),
-        takerAsset: new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
+        makerAsset: order.escrowParams.srcChainId === ChainIds.Ethereum
+          ? new Sdk.Address(order.orderInfo.makerAsset.address)
+          : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.makerAsset.address, order.orderInfo.makerAsset.tokenId)),
+        takerAsset: order.escrowParams.dstChainId === ChainIds.Ethereum
+          ? new Sdk.Address(order.orderInfo.takerAsset.address)
+          : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
       },
       {
         hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
-        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.SONIC,
-        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.SONIC,
+        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
+        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
         srcSafetyDeposit: order.escrowParams.srcSafetyDeposit,
         dstSafetyDeposit: order.escrowParams.dstSafetyDeposit,
         timeLocks: Sdk.TimeLocks.new({
@@ -142,19 +181,17 @@ export class SwapManager {
         }),
       },
       {
-        auction: new Sdk.AuctionDetails({
-          initialRateBump: 0,
-          points: [],
-          duration: 120n,
-          startTime: BigInt(Math.floor(Date.now() / 1000)),
-        }),
-        whitelist: [
-          {
-            address: new Sdk.Address(config.evmChain.resolverAddress),
-            allowFrom: 0n,
-          },
-        ],
-        resolvingStartTime: 0n,
+        auction: new Sdk.AuctionDetails(order.details.auction),
+        whitelist: order.details.whitelist.map(item => ({
+          address: new Sdk.Address(item.address),
+          allowFrom: item.allowFrom,
+        })),
+        resolvingStartTime: order.details.resolvingStartTime,
+      },
+      {
+        nonce: order.extra.nonce,
+        allowPartialFills: order.extra.allowPartialFills,
+        allowMultipleFills: order.extra.allowMultipleFills,
       }
     );
   }

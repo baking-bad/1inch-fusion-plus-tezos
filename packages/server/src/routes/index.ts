@@ -11,7 +11,7 @@ export const getIndexRouter = (app: App): Router => {
     res.send('Welcome to the 1inch Fusion Plus Server!');
   });
 
-  indexRouter.get('/resolver', getResolverRouter(app));
+  indexRouter.use('/resolver', getResolverRouter(app));
 
   return indexRouter;
 };

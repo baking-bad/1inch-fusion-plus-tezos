@@ -9,6 +9,7 @@ import { EvmEscrowFactory } from './evmEscrowFactory.js';
 
 export interface ResolverOptions {
   evmEscrowFactoryAddress: string;
+  evmResolverContractAddress: string;
   tezosEscrowFactoryAddress: string;
   evmChainAccount: EvmChainAccount;
   tezosChainAccount: TezosChainAccount;
@@ -33,7 +34,7 @@ export class Resolver {
     this.evmChainAccount = options.evmChainAccount;
     this.tezosChainAccount = options.tezosChainAccount;
     this.evmEscrowFactory = new EvmEscrowFactory(options.evmChainAccount.provider, options.evmEscrowFactoryAddress);
-    this.evmResolverChainService = new EvmResolverChainService(options.evmChainAccount, this.evmEscrowFactory.address);
+    this.evmResolverChainService = new EvmResolverChainService(options.evmChainAccount, options.evmResolverContractAddress);
     this.tezosResolverChainService = new TezosResolverChainService(options.tezosChainAccount);
   }
 
@@ -56,7 +57,12 @@ export class Resolver {
       console.log('Order:');
       console.dir(order, { depth: null });
 
-      const sdkOrder = this.mapOrderToSdkCrossChainOrder(order.order, this.evmResolverChainService.resolverContractAddress);
+      const sdkOrder = this.mapOrderToSdkCrossChainOrder(order.order);
+      const sdkOrderHash = sdkOrder.getOrderHash(ChainIds.Ethereum);
+      if (order.orderHash !== sdkOrderHash) {
+        throw new Error(`Order hash mismatch: expected ${order.orderHash}, got ${sdkOrderHash}`);
+      }
+
       const ethereumEscrowDeployTxResult = await this.evmResolverChainService.deploySrc(
         order.order.escrowParams.srcChainId,
         sdkOrder,
@@ -73,9 +79,11 @@ export class Resolver {
       const srcEscrowEvent = await this.evmEscrowFactory.getSrcDeployEvent(ethereumEscrowDeployTxResult.blockHash);
       const srcImmutables = this.mapSdkImmutablesToImmutables(srcEscrowEvent[0]);
 
+      const tezosResolverOwnerAddressEvmStyle = tezosChainHelpers.mapTezosAddressToEvmAddress(tezosResolverOwnerAddress);
+      console.log('Tezos resolver owner address (EVM style):', tezosResolverOwnerAddress, ' -> ', tezosResolverOwnerAddressEvmStyle);
       const sdkDstImmutables = srcEscrowEvent[0]
         .withComplement(srcEscrowEvent[1])
-        .withTaker(new Sdk.Address(tezosResolverOwnerAddress));
+        .withTaker(new Sdk.Address(tezosResolverOwnerAddressEvmStyle));
       const dstImmutables = this.mapSdkImmutablesToImmutables(sdkDstImmutables);
       const tezosEscrowDeployTxResult = await this.tezosResolverChainService.deployDst(dstImmutables);
 
@@ -120,7 +128,7 @@ export class Resolver {
   async cancelSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
   }
 
-  protected mapOrderToSdkCrossChainOrder(order: CrossChainOrder, evmResolverAddress: string): Sdk.CrossChainOrder {
+  private mapOrderToSdkCrossChainOrder(order: CrossChainOrder): Sdk.CrossChainOrder {
     return Sdk.CrossChainOrder.new(
       new Sdk.Address(order.escrowFactory),
       {
@@ -128,13 +136,17 @@ export class Resolver {
         maker: new Sdk.Address(order.orderInfo.maker),
         makingAmount: order.orderInfo.makingAmount,
         takingAmount: order.orderInfo.takingAmount,
-        makerAsset: new Sdk.Address(order.orderInfo.makerAsset.address),
-        takerAsset: new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
+        makerAsset: order.escrowParams.srcChainId === ChainIds.Ethereum
+          ? new Sdk.Address(order.orderInfo.makerAsset.address)
+          : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.makerAsset.address, order.orderInfo.makerAsset.tokenId)),
+        takerAsset: order.escrowParams.dstChainId === ChainIds.Ethereum
+          ? new Sdk.Address(order.orderInfo.takerAsset.address)
+          : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
       },
       {
         hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
-        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.SONIC,
-        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.SONIC,
+        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
+        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
         srcSafetyDeposit: order.escrowParams.srcSafetyDeposit,
         dstSafetyDeposit: order.escrowParams.dstSafetyDeposit,
         timeLocks: Sdk.TimeLocks.new({
@@ -148,19 +160,17 @@ export class Resolver {
         }),
       },
       {
-        auction: new Sdk.AuctionDetails({
-          initialRateBump: 0,
-          points: [],
-          duration: 120n,
-          startTime: BigInt(Math.floor(Date.now() / 1000)),
-        }),
-        whitelist: [
-          {
-            address: new Sdk.Address(evmResolverAddress),
-            allowFrom: 0n,
-          },
-        ],
-        resolvingStartTime: 0n,
+        auction: new Sdk.AuctionDetails(order.details.auction),
+        whitelist: order.details.whitelist.map(item => ({
+          address: new Sdk.Address(item.address),
+          allowFrom: item.allowFrom,
+        })),
+        resolvingStartTime: order.details.resolvingStartTime,
+      },
+      {
+        nonce: order.extra.nonce,
+        allowPartialFills: order.extra.allowPartialFills,
+        allowMultipleFills: order.extra.allowMultipleFills,
       }
     );
   }

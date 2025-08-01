@@ -3,6 +3,58 @@ import type * as Dtos from '../dtos/core.js';
 
 // ======= Model to DTO mappers ======= //
 
+export function mapAuctionPointToDto(model: Models.AuctionPoint): Dtos.AuctionPointDto {
+  return {
+    delay: model.delay,
+    coefficient: model.coefficient,
+  };
+}
+
+export function mapAuctionGasCostInfoToDto(model: Models.AuctionGasCostInfo): Dtos.AuctionGasCostInfoDto {
+  return {
+    gasBumpEstimate: model.gasBumpEstimate.toString(),
+    gasPriceEstimate: model.gasPriceEstimate.toString(),
+  };
+}
+
+export function mapAuctionDetailsToDto(model: Models.AuctionDetails): Dtos.AuctionDetailsDto {
+  return {
+    startTime: model.startTime.toString(),
+    initialRateBump: model.initialRateBump,
+    duration: model.duration.toString(),
+    points: model.points.map(mapAuctionPointToDto),
+    gasCost: model.gasCost ? mapAuctionGasCostInfoToDto(model.gasCost) : undefined,
+  };
+}
+
+export function mapIntegratorFeeToDto(model: Models.IntegratorFee): Dtos.IntegratorFeeDto {
+  return {
+    ratio: model.ratio.toString(),
+    receiver: model.receiver,
+  };
+}
+
+export function mapAuctionWhitelistItemToDto(model: Models.AuctionWhitelistItem): Dtos.AuctionWhitelistItemDto {
+  return {
+    address: model.address,
+    allowFrom: model.allowFrom.toString(),
+  };
+}
+
+export function mapDetailsToDto(model: Models.Details): Dtos.DetailsDto {
+  return {
+    auction: mapAuctionDetailsToDto(model.auction),
+    fees: model.fees
+      ? {
+        integratorFee: model.fees.integratorFee ? mapIntegratorFeeToDto(model.fees.integratorFee) : undefined,
+        bankFee: model.fees.bankFee?.toString(),
+      }
+      : undefined,
+    whitelist: model.whitelist.map(mapAuctionWhitelistItemToDto),
+    resolvingStartTime: model.resolvingStartTime?.toString(),
+  };
+}
+
 export function mapTimeLocksToDto(model: Models.TimeLocks): Dtos.TimeLocksDto {
   return {
     srcWithdrawal: model.srcWithdrawal.toString(),
@@ -55,6 +107,7 @@ export function mapCrossChainOrderToDto(model: Models.CrossChainOrder): Dtos.Cro
     escrowFactory: model.escrowFactory,
     orderInfo: mapCrossChainOrderInfoToDto(model.orderInfo),
     escrowParams: mapEscrowParamsToDto(model.escrowParams),
+    details: mapDetailsToDto(model.details),
     extra: mapCrossChainOrderExtraToDto(model.extra),
   };
 }
@@ -81,6 +134,58 @@ export function mapImmutablesToDto(model: Models.Immutables): Dtos.ImmutablesDto
 }
 
 // ======= DTO to Model mappers ======= //
+
+export function mapAuctionPointDtoToModel(dto: Dtos.AuctionPointDto): Models.AuctionPoint {
+  return {
+    delay: dto.delay,
+    coefficient: dto.coefficient,
+  };
+}
+
+export function mapAuctionGasCostInfoDtoToModel(dto: Dtos.AuctionGasCostInfoDto): Models.AuctionGasCostInfo {
+  return {
+    gasBumpEstimate: BigInt(dto.gasBumpEstimate),
+    gasPriceEstimate: BigInt(dto.gasPriceEstimate),
+  };
+}
+
+export function mapAuctionDetailsDtoToModel(dto: Dtos.AuctionDetailsDto): Models.AuctionDetails {
+  return {
+    startTime: BigInt(dto.startTime),
+    initialRateBump: dto.initialRateBump,
+    duration: BigInt(dto.duration),
+    points: dto.points.map(mapAuctionPointDtoToModel),
+    gasCost: dto.gasCost ? mapAuctionGasCostInfoDtoToModel(dto.gasCost) : undefined,
+  };
+}
+
+export function mapIntegratorFeeDtoToModel(dto: Dtos.IntegratorFeeDto): Models.IntegratorFee {
+  return {
+    ratio: BigInt(dto.ratio),
+    receiver: dto.receiver,
+  };
+}
+
+export function mapAuctionWhitelistItemDtoToModel(dto: Dtos.AuctionWhitelistItemDto): Models.AuctionWhitelistItem {
+  return {
+    address: dto.address,
+    allowFrom: BigInt(dto.allowFrom),
+  };
+}
+
+export function mapDetailsDtoToModel(dto: Dtos.DetailsDto): Models.Details {
+  return {
+    auction: mapAuctionDetailsDtoToModel(dto.auction),
+    fees: dto.fees
+      ? {
+        integratorFee: dto.fees.integratorFee ? mapIntegratorFeeDtoToModel(dto.fees.integratorFee) : undefined,
+        bankFee: dto.fees.bankFee ? BigInt(dto.fees.bankFee) : undefined,
+      }
+      : undefined,
+    whitelist: dto.whitelist.map(mapAuctionWhitelistItemDtoToModel),
+    resolvingStartTime: dto.resolvingStartTime ? BigInt(dto.resolvingStartTime) : undefined,
+  };
+}
 
 export function mapTimeLocksDtoToModel(dto: Dtos.TimeLocksDto): Models.TimeLocks {
   return {
@@ -134,6 +239,7 @@ export function mapCrossChainOrderDtoToModel(dto: Dtos.CrossChainOrderDto): Mode
     escrowFactory: dto.escrowFactory,
     orderInfo: mapCrossChainOrderInfoDtoToModel(dto.orderInfo),
     escrowParams: mapEscrowParamsDtoToModel(dto.escrowParams),
+    details: mapDetailsDtoToModel(dto.details),
     extra: mapCrossChainOrderExtraDtoToModel(dto.extra),
   };
 }

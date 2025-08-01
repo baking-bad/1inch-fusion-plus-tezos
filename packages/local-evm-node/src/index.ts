@@ -33,7 +33,7 @@ try {
   const localRpcUrl = `http://localhost:${config.server.port}/1`;
 
   const wallet = new EvmChainAccount({
-    userPrivateKey: config.chain.deployerPrivateKey,
+    privateKeyOrSigner: config.chain.deployerPrivateKey,
     rpcUrl: localRpcUrl,
     chainId: config.chain.chainId,
     tokens: ethereumTokens,

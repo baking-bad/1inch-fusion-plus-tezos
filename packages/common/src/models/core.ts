@@ -73,6 +73,46 @@ export interface EscrowParams {
   timeLocks: TimeLocks;
 }
 
+export interface AuctionPoint {
+  delay: number;
+  coefficient: number;
+};
+export interface AuctionGasCostInfo {
+  gasBumpEstimate: bigint;
+  gasPriceEstimate: bigint;
+};
+
+export interface AuctionDetails {
+  startTime: bigint;
+  initialRateBump: number;
+  duration: bigint;
+  points: AuctionPoint[];
+  gasCost?: AuctionGasCostInfo;
+}
+
+export interface IntegratorFee {
+  ratio: bigint;
+  receiver: string;
+};
+
+export interface AuctionWhitelistItem {
+  address: string;
+  allowFrom: bigint;
+};
+
+export interface Details {
+  auction: AuctionDetails;
+  fees?: {
+    integratorFee?: IntegratorFee;
+    bankFee?: bigint;
+  };
+  whitelist: AuctionWhitelistItem[];
+  /**
+   * Time from which order can be executed
+   */
+  resolvingStartTime?: bigint;
+};
+
 export interface CrossChainOrderExtra {
   /**
      * Max size is 40bit
@@ -94,8 +134,7 @@ export interface CrossChainOrder {
   escrowFactory: string;
   orderInfo: CrossChainOrderInfo;
   escrowParams: EscrowParams;
-  // Ignored for demo
-  // details: Details;
+  details: Details;
   extra: CrossChainOrderExtra;
 }
 

@@ -4,7 +4,7 @@ import type { ChainId, Erc20Token } from '../models/index.js';
 import ERC20 from '../../../../contracts/evm/compiled/IERC20.sol/IERC20.json' with { type: 'json' };
 
 interface EvmChainAccountOptions {
-  userPrivateKey: string;
+  privateKeyOrSigner: string | Signer;
   rpcUrl: string;
   chainId: ChainId;
   tokens: ReadonlyMap<string, Erc20Token>;
@@ -30,7 +30,9 @@ export class EvmChainAccount {
       cacheTimeout: -1,
       staticNetwork: true,
     });
-    this.signer = new Wallet(options.userPrivateKey, this.provider);
+    this.signer = typeof options.privateKeyOrSigner === 'string'
+      ? new Wallet(options.privateKeyOrSigner, this.provider)
+      : options.privateKeyOrSigner;
   }
 
   async start() {
@@ -99,6 +101,7 @@ export class EvmChainAccount {
   }
 
   async approveUnlimited(tokenAddress: string, spender: string): Promise<void> {
+    console.log(`Approving unlimited allowance for ${tokenAddress} token to ${spender}...`);
     const currentApprove = await this.getAllowance(tokenAddress, spender);
 
     // for usdt like tokens
@@ -107,6 +110,7 @@ export class EvmChainAccount {
     }
 
     await this.approveToken(tokenAddress, spender, (1n << 256n) - 1n);
+    console.log(`Unlimited allowance approved for ${tokenAddress} token to ${spender}`);
   }
 
   async getAllowance(token: string, spender: string): Promise<bigint> {

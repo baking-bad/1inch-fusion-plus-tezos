@@ -22,10 +22,15 @@ interface TezosChainConfig {
   readonly resolverAddress: string;
 }
 
+interface ResolverServiceConfig {
+  readonly baseUrl: string;
+}
+
 export interface Config {
   readonly workingDirectory: string;
   readonly evmChain: EvmChainConfig;
   readonly tezosChain: TezosChainConfig;
+  readonly resolverService: ResolverServiceConfig;
 }
 
 const createEvmChainConfig = (): EvmChainConfig => {
@@ -78,11 +83,23 @@ const createTezosChainConfig = (): TezosChainConfig => {
   };
 };
 
+const createResolverServiceConfig = (): ResolverServiceConfig => {
+  const baseUrl = process.env.RESOLVER_SERVICE__BASE_URL;
+  if (!baseUrl)
+    throw new Error('The RESOLVER_SERVICE__BASE_URL is not specified');
+
+  return {
+    baseUrl,
+  };
+};
+
 const evmChainConfig = createEvmChainConfig();
 const tezosChainConfig = createTezosChainConfig();
+const resolverServiceConfig = createResolverServiceConfig();
 
 export default {
   workingDirectory,
   evmChain: evmChainConfig,
   tezosChain: tezosChainConfig,
+  resolverService: resolverServiceConfig,
 } satisfies Config;

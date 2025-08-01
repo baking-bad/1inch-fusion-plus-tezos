@@ -7,7 +7,7 @@ import { getPlaceOrderResolverRouter } from './placeOrder/index.js';
 export const getResolverRouter = (app: App): Router => {
   const resolverRouter = Router();
 
-  resolverRouter.post('/order', getPlaceOrderResolverRouter(app));
+  resolverRouter.use('/order', getPlaceOrderResolverRouter(app));
 
   return resolverRouter;
 };

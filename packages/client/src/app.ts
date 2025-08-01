@@ -6,6 +6,7 @@ import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumToke
 
 import config from './config.js';
 import { SwapManager } from './swapManager.js';
+import { ResolverService } from './resolverService.js';
 
 type Command = [aliases: readonly string[], handler: (inputCommand: string, ...args: any) => (void | Promise<void>), description?: string];
 
@@ -32,7 +33,7 @@ export class App {
     });
 
     this.evmAccount = new EvmChainAccount({
-      userPrivateKey: config.evmChain.userPrivateKey,
+      privateKeyOrSigner: config.evmChain.userPrivateKey,
       rpcUrl: config.evmChain.rpcUrl,
       chainId: ChainIds.Ethereum,
       tokens: ethereumTokens,
@@ -43,7 +44,11 @@ export class App {
       rpcUrl: config.tezosChain.rpcUrl,
       tokens: tezosTokens,
     });
-    this.swapManager = new SwapManager(this.evmAccount, this.tezosAccount);
+    this.swapManager = new SwapManager({
+      evmChainAccount: this.evmAccount,
+      tezosChainAccount: this.tezosAccount,
+      resolverService: new ResolverService(config.resolverService.baseUrl),
+    });
   }
 
   async start() {
@@ -56,7 +61,9 @@ export class App {
     console.log('Tezos account:', await this.tezosAccount.getAddress());
 
     await this.evmAccount.topUpFromDonor(parseEther('10'));
-    await this.evmAccount.topUpFromDonor(ethereumTokens.get('usdc')!.address, parseUnits('1000', 6));
+    const ethUsdcToken = ethereumTokens.get('usdc')!;
+    await this.evmAccount.topUpFromDonor(ethUsdcToken.address, parseUnits('1000', 6));
+    await this.evmAccount.approveUnlimited(ethUsdcToken.address, config.evmChain.escrowFactoryAddress);
 
     console.log('Type "help" for available commands.');
     console.log('');
@@ -175,9 +182,9 @@ export class App {
     console.log('Swap order created successfully:');
     console.dir(order, { depth: null });
 
-    const orderDto = mappers.core.mapSignedCrossChainOrderToDto(order);
-    console.log('Order DTO:');
-    console.dir(orderDto, { depth: null });
+    console.log('Sending order to resolver service...');
+    const result = await this.swapManager.sendOrder(order);
+    console.log('Order sent successfully:', result);
   };
 
   private topUpCommandHandler = async (inputCommand: string, ...args: string[]) => {

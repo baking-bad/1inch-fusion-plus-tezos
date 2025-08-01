@@ -3,6 +3,7 @@ export * from './utils/index.js';
 export * from './chainAccounts/index.js';
 export * as evmChainHelpers from './evmChainHelpers.js';
 export * as tezosChainHelpers from './tezosChainHelpers.js';
+export { RemoteService, RemoteServiceResponseError } from './remoteService.js';
 
 export * from './protocolConfig.js';
 export * from './tokens.js';
