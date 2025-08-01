@@ -150,7 +150,7 @@ export class SwapManager {
         }),
         whitelist: [
           {
-            address: new Sdk.Address(tezosChainHelpers.mapTezosAddressToEvmAddress(config.tezosChain.resolverAddress)),
+            address: new Sdk.Address(config.evmChain.resolverAddress),
             allowFrom: 0n,
           },
         ],

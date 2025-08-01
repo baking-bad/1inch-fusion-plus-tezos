@@ -94,7 +94,6 @@ export interface CrossChainOrder {
 }
 
 export interface Immutables {
-  chainId: ChainId;
   orderHash: string;
   hashLock: string;
   maker: string;

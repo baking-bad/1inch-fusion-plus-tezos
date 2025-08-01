@@ -5,9 +5,11 @@ import type { App } from '../../../app.js';
 export const getPlaceOrderResolverRouter = (app: App): Router => {
   const router = Router();
 
-  router.post('/', (_req, res) => {
-    // TODO: Implement the place order logic
-    // app.services.resolver.deploySrc()
+  router.post('/', async (req, res) => {
+    const order = req.body;
+    const result = await app.services.resolver.startSwap(order);
+
+    return res.status(200).json(result);
   });
 
   return router;

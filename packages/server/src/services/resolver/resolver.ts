@@ -1,54 +1,209 @@
-import type { ChainId } from '../../../../common/src/models/chain.js';
-import type { CrossChainOrder, Immutables } from '../../models/core.js';
+import Sdk from '@1inch/cross-chain-sdk';
 
-import { ResolverChainService } from './resolverChainService.js';
+import { ChainIds, CrossChainOrder, Immutables, tezosChainHelpers, type EvmChainAccount, type SignedCrossChainOrder, type TezosChainAccount } from '@baking-bad/1inch-fusion-plus-common';
+
+import type { OrderContext } from './orderContext.js';
+import { EvmResolverChainService } from './evmResolverChainService.js';
+import { TezosResolverChainService } from './tezosResolverChainService.js';
+import { EvmEscrowFactory } from './evmEscrowFactory.js';
+
+export interface ResolverOptions {
+  evmEscrowFactoryAddress: string;
+  tezosEscrowFactoryAddress: string;
+  evmChainAccount: EvmChainAccount;
+  tezosChainAccount: TezosChainAccount;
+}
+
+interface SwapResult {
+  srcEscrowTx: string;
+  srcEscrowAddress: string;
+  dstEscrowTx: string;
+  dstEscrowAddress: string;
+}
 
 export class Resolver {
-  servicesMap: Map<ChainId, ResolverChainService>;
+  protected readonly orders: Map<string, OrderContext> = new Map();
+  protected readonly evmEscrowFactory: EvmEscrowFactory;
+  protected readonly evmChainAccount: EvmChainAccount;
+  protected readonly tezosChainAccount: TezosChainAccount;
+  protected readonly evmResolverChainService: EvmResolverChainService;
+  protected readonly tezosResolverChainService: TezosResolverChainService;
 
-  constructor(servicesMap: Map<ChainId, ResolverChainService>) {
-    this.servicesMap = servicesMap;
+  constructor(options: ResolverOptions) {
+    this.evmChainAccount = options.evmChainAccount;
+    this.tezosChainAccount = options.tezosChainAccount;
+    this.evmEscrowFactory = new EvmEscrowFactory(options.evmChainAccount.provider, options.evmEscrowFactoryAddress);
+    this.evmResolverChainService = new EvmResolverChainService(options.evmChainAccount, this.evmEscrowFactory.address);
+    this.tezosResolverChainService = new TezosResolverChainService(options.tezosChainAccount);
   }
 
-  deploySrc(order: CrossChainOrder, signature: string): Promise<string> {
-    const srcService = this.servicesMap.get(order.escrowParams.srcChainId);
-    if (!srcService)
-      throw new Error(`Source chain not supported: ${order.escrowParams.srcChainId}`);
-
-    const dstService = this.servicesMap.get(order.escrowParams.dstChainId);
-    if (!dstService)
-      throw new Error(`Destination chain not supported: ${order.escrowParams.dstChainId}`);
-
-    if (!srcService.canReceiveTokens(order))
-      throw new Error(`Cannot receive tokens on source chain: ${order.escrowParams.srcChainId}`);
-
-    if (!dstService.canSendTokens(order))
-      throw new Error(`Cannot send tokens on destination chain: ${order.escrowParams.dstChainId}`);
-
-    return srcService.deploySrc(order, signature);
+  canSwap(_order: SignedCrossChainOrder): boolean {
+    // TODO: Check user balances and other conditions
+    return true;
   }
 
-  deployDst(dstImmutables: Immutables): Promise<string> {
-    const dstService = this.servicesMap.get(dstImmutables.chainId);
-    if (!dstService)
-      throw new Error(`Destination chain not supported: ${dstImmutables.chainId}`);
+  async startSwap(order: SignedCrossChainOrder): Promise<SwapResult> {
+    if (!this.canSwap(order)) {
+      throw new Error('Cannot swap: conditions not met');
+    }
+    const [evmResolverOwnerAddress, tezosResolverOwnerAddress] = await Promise.all([
+      this.evmChainAccount.getAddress(),
+      this.tezosChainAccount.getAddress(),
+    ]);
 
-    return dstService.deployDst(dstImmutables);
+    if (order.order.escrowParams.srcChainId === ChainIds.Ethereum && order.order.escrowParams.dstChainId === ChainIds.TezosGhostnet) {
+      console.log('Starting swap from Ethereum to Tezos...');
+      console.log('Order:');
+      console.dir(order, { depth: null });
+
+      const sdkOrder = this.mapOrderToSdkCrossChainOrder(order.order, this.evmResolverChainService.resolverContractAddress);
+      const ethereumEscrowDeployTxResult = await this.evmResolverChainService.deploySrc(
+        order.order.escrowParams.srcChainId,
+        sdkOrder,
+        order.signature,
+        Sdk.TakerTraits.default()
+          .setExtension(sdkOrder.extension)
+          .setAmountMode(Sdk.AmountMode.maker)
+          .setAmountThreshold(sdkOrder.takingAmount),
+        order.order.orderInfo.makingAmount
+      );
+
+      console.log('Ethereum escrow deployed:', ethereumEscrowDeployTxResult);
+
+      const srcEscrowEvent = await this.evmEscrowFactory.getSrcDeployEvent(ethereumEscrowDeployTxResult.blockHash);
+      const srcImmutables = this.mapSdkImmutablesToImmutables(srcEscrowEvent[0]);
+
+      const sdkDstImmutables = srcEscrowEvent[0]
+        .withComplement(srcEscrowEvent[1])
+        .withTaker(new Sdk.Address(tezosResolverOwnerAddress));
+      const dstImmutables = this.mapSdkImmutablesToImmutables(sdkDstImmutables);
+      const tezosEscrowDeployTxResult = await this.tezosResolverChainService.deployDst(dstImmutables);
+
+      console.log('Tezos escrow deployed:', tezosEscrowDeployTxResult);
+
+      const srcEscrowImplementationAddress = await this.evmEscrowFactory.getSourceImpl();
+      const srcEscrowAddress = new Sdk.EscrowFactory(new Sdk.Address(this.evmEscrowFactory.address)).getSrcEscrowAddress(
+        srcEscrowEvent[0],
+        srcEscrowImplementationAddress
+      ).toString();
+      const dstEscrowAddress = 'TODO: Tezos';
+
+      const orderContext: OrderContext = {
+        order,
+        srcImmutables: srcImmutables,
+        dstImmutables: dstImmutables,
+        srcEscrowDeployedTimestamp: ethereumEscrowDeployTxResult.blockTimestamp,
+        dstEscrowDeployedTimestamp: 0n,
+        srcEscrowAddress,
+        dstEscrowAddress,
+      };
+
+      this.orders.set(order.orderHash, orderContext);
+
+      return {
+        srcEscrowTx: ethereumEscrowDeployTxResult.txHash,
+        srcEscrowAddress,
+        dstEscrowAddress,
+        dstEscrowTx: tezosEscrowDeployTxResult,
+      };
+    }
+    else if (order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
+      throw new Error('Tezos to Ethereum swap is not supported yet');
+    }
+
+    throw new Error(`Unsupported chain combination: ${order.order.escrowParams.srcChainId} to ${order.order.escrowParams.dstChainId}`);
   }
 
-  withdraw(escrowAddress: string, secret: string, immutables: Immutables): Promise<string> {
-    const service = this.servicesMap.get(immutables.chainId);
-    if (!service)
-      throw new Error(`Chain not supported: ${immutables.chainId}`);
-
-    return service.withdraw(escrowAddress, secret, immutables);
+  async finalizeSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
   }
 
-  cancel(escrowAddress: string, immutables: Immutables): Promise<string> {
-    const service = this.servicesMap.get(immutables.chainId);
-    if (!service)
-      throw new Error(`Chain not supported: ${immutables.chainId}`);
+  async cancelSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
+  }
 
-    return service.cancel(escrowAddress, immutables);
+  protected mapOrderToSdkCrossChainOrder(order: CrossChainOrder, evmResolverAddress: string): Sdk.CrossChainOrder {
+    return Sdk.CrossChainOrder.new(
+      new Sdk.Address(order.escrowFactory),
+      {
+        salt: order.orderInfo.salt,
+        maker: new Sdk.Address(order.orderInfo.maker),
+        makingAmount: order.orderInfo.makingAmount,
+        takingAmount: order.orderInfo.takingAmount,
+        makerAsset: new Sdk.Address(order.orderInfo.makerAsset.address),
+        takerAsset: new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
+      },
+      {
+        hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
+        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.SONIC,
+        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.SONIC,
+        srcSafetyDeposit: order.escrowParams.srcSafetyDeposit,
+        dstSafetyDeposit: order.escrowParams.dstSafetyDeposit,
+        timeLocks: Sdk.TimeLocks.new({
+          srcWithdrawal: order.escrowParams.timeLocks.srcWithdrawal,
+          srcPublicWithdrawal: order.escrowParams.timeLocks.srcPublicWithdrawal,
+          srcCancellation: order.escrowParams.timeLocks.srcCancellation,
+          srcPublicCancellation: order.escrowParams.timeLocks.srcPublicCancellation,
+          dstWithdrawal: order.escrowParams.timeLocks.dstWithdrawal,
+          dstPublicWithdrawal: order.escrowParams.timeLocks.dstPublicWithdrawal,
+          dstCancellation: order.escrowParams.timeLocks.dstCancellation,
+        }),
+      },
+      {
+        auction: new Sdk.AuctionDetails({
+          initialRateBump: 0,
+          points: [],
+          duration: 120n,
+          startTime: BigInt(Math.floor(Date.now() / 1000)),
+        }),
+        whitelist: [
+          {
+            address: new Sdk.Address(evmResolverAddress),
+            allowFrom: 0n,
+          },
+        ],
+        resolvingStartTime: 0n,
+      }
+    );
+  }
+
+  protected mapSdkImmutablesToImmutables(immutables: Sdk.Immutables): Immutables {
+    return {
+      orderHash: immutables.orderHash,
+      hashLock: immutables.hashLock.toString(),
+      maker: immutables.maker.toString(),
+      taker: immutables.taker.toString(),
+      token: immutables.token.toString(),
+      amount: immutables.amount,
+      safetyDeposit: immutables.safetyDeposit,
+      timeLocks: {
+        srcWithdrawal: (immutables.timeLocks as any)._srcWithdrawal,
+        srcPublicWithdrawal: (immutables.timeLocks as any)._srcPublicWithdrawal,
+        srcCancellation: (immutables.timeLocks as any)._srcCancellation,
+        srcPublicCancellation: (immutables.timeLocks as any)._srcPublicCancellation,
+        dstWithdrawal: (immutables.timeLocks as any)._dstWithdrawal,
+        dstPublicWithdrawal: (immutables.timeLocks as any)._dstPublicWithdrawal,
+        dstCancellation: (immutables.timeLocks as any)._dstCancellation,
+      },
+    };
+  }
+
+  protected mapImmutablesToSdkImmutables(immutables: Immutables): Sdk.Immutables {
+    return Sdk.Immutables.new({
+      orderHash: immutables.orderHash,
+      hashLock: Sdk.HashLock.fromString(immutables.hashLock),
+      maker: new Sdk.Address(immutables.maker),
+      taker: new Sdk.Address(immutables.taker),
+      token: new Sdk.Address(immutables.token),
+      amount: immutables.amount,
+      safetyDeposit: immutables.safetyDeposit,
+      timeLocks: Sdk.TimeLocks.new({
+        srcWithdrawal: immutables.timeLocks.srcWithdrawal,
+        srcPublicWithdrawal: immutables.timeLocks.srcPublicWithdrawal,
+        srcCancellation: immutables.timeLocks.srcCancellation,
+        srcPublicCancellation: immutables.timeLocks.srcPublicCancellation,
+        dstWithdrawal: immutables.timeLocks.dstWithdrawal,
+        dstPublicWithdrawal: immutables.timeLocks.dstPublicWithdrawal,
+        dstCancellation: immutables.timeLocks.dstCancellation,
+      }),
+    });
   }
 }

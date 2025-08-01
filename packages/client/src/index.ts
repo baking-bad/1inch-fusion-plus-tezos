@@ -1,3 +1,5 @@
+import './extend.js';
+
 import { App } from './app.js';
 
 try {

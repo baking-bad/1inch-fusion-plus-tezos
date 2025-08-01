@@ -1,20 +1,38 @@
 import express, { type Express, type Router, type Request, type Response, type NextFunction } from 'express';
 
+import { parseUnits, parseEther } from 'ethers';
+
 import config from './config.js';
 import { getIndexRouter } from './routes/index.js';
-import { Resolver, TaquitoContractTezosBridgeBlockchainService } from './services/resolver/index.js';
+import { Resolver } from './services/resolver/index.js';
 import { ChainIds } from '../../common/src/models/chain.js';
+import { ethereumTokenDonors, ethereumTokens, EvmChainAccount, TezosChainAccount, tezosTokens } from '@baking-bad/1inch-fusion-plus-common';
 
 interface AppServices {
   resolver: Resolver;
 }
 
 export class App {
+  readonly evmAccount: EvmChainAccount;
+  readonly tezosAccount: TezosChainAccount;
   readonly services: AppServices;
   readonly indexRouter: Router;
   readonly express: Express;
 
   constructor() {
+    this.evmAccount = new EvmChainAccount({
+      chainId: ChainIds.Ethereum,
+      rpcUrl: config.evmChainConfig.rpcUrl,
+      userPrivateKey: config.evmChainConfig.resolverOwnerPrivateKey,
+      tokens: ethereumTokens,
+      tokenDonors: ethereumTokenDonors,
+    });
+    this.tezosAccount = new TezosChainAccount({
+      rpcUrl: config.tezosChainConfig.rpcUrl,
+      userPrivateKey: config.tezosChainConfig.resolverOwnerPrivateKey,
+      tokens: tezosTokens,
+    });
+
     this.services = this.createServices();
     this.indexRouter = getIndexRouter(this);
     this.express = this.createExpressApp(this.indexRouter);
@@ -22,6 +40,15 @@ export class App {
 
   async start() {
     console.log('Starting...');
+
+    await this.evmAccount.start();
+    await this.tezosAccount.start();
+
+    console.log('Ethereum resolver owner:', await this.evmAccount.getAddress());
+    console.log('Tezos resolver owner:', await this.tezosAccount.getAddress());
+
+    await this.evmAccount.topUpFromDonor(parseEther('10'));
+    await this.evmAccount.topUpFromDonor(ethereumTokens.get('usdc')!.address, parseUnits('100000', 6));
 
     this.express.listen(config.server.port, () => {
       console.log(`Server started on port ${config.server.port}`);
@@ -44,9 +71,12 @@ export class App {
   }
 
   protected createServices(): AppServices {
-    const resolver = new Resolver(new Map([
-      new TaquitoContractTezosBridgeBlockchainService(ChainIds.TezosGhostnet),
-    ].map(service => [service.chainId, service])));
+    const resolver = new Resolver({
+      evmEscrowFactoryAddress: config.evmChainConfig.escrowFactoryAddress,
+      tezosEscrowFactoryAddress: config.tezosChainConfig.escrowFactoryAddress,
+      evmChainAccount: this.evmAccount,
+      tezosChainAccount: this.tezosAccount,
+    });
 
     return {
       resolver,
