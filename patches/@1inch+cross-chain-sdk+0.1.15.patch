@@ -1,0 +1,13 @@
+diff --git a/node_modules/@1inch/cross-chain-sdk/package.json b/node_modules/@1inch/cross-chain-sdk/package.json
+index a908c1e..4ceba8f 100644
+--- a/node_modules/@1inch/cross-chain-sdk/package.json
++++ b/node_modules/@1inch/cross-chain-sdk/package.json
+@@ -9,7 +9,7 @@
+   "exports": {
+     ".": {
+       "types": "./dist/types/src/index.d.ts",
+-      "import": "./dist/esm/index.js",
++      "import": "./dist/cjs/index.js",
+       "require": "./dist/cjs/index.js",
+       "node": "./dist/cjs/index.js",
+       "default": "./dist/cjs/index.js"

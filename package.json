@@ -11,11 +11,15 @@
     "node": ">=22.0.0",
     "npm": ">=10.9.0"
   },
+  "scripts": {
+    "postinstall": "patch-package"
+  },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@stylistic/eslint-plugin": "^5.2.2",
     "@types/node": "^24.1.0",
     "eslint": "^9.32.0",
+    "patch-package": "^8.0.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0"
   }
