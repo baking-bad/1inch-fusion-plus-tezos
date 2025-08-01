@@ -2,7 +2,7 @@ import readline, { Interface as ReadlineInterface } from 'node:readline';
 
 import { parseUnits, formatUnits, parseEther } from 'ethers';
 
-import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId } from '@baking-bad/1inch-fusion-plus-common';
+import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId, mappers } from '@baking-bad/1inch-fusion-plus-common';
 
 import config from './config.js';
 import { SwapManager } from './swapManager.js';
@@ -174,6 +174,10 @@ export class App {
 
     console.log('Swap order created successfully:');
     console.dir(order, { depth: null });
+
+    const orderDto = mappers.core.mapSignedCrossChainOrderToDto(order);
+    console.log('Order DTO:');
+    console.dir(orderDto, { depth: null });
   };
 
   private topUpCommandHandler = async (inputCommand: string, ...args: string[]) => {
