@@ -1,9 +1,9 @@
+import { parseEther } from 'ethers';
 import { createServer } from 'prool';
 import { anvil } from 'prool/instances';
-import Sdk from '@1inch/cross-chain-sdk';
 
 import config from './config.js';
-import { EvmChainAccount, evmChainHelpers } from '@baking-bad/1inch-fusion-plus-common';
+import { ethereumTokenDonors, ethereumTokens, EvmChainAccount, evmChainHelpers, protocolConfig } from '@baking-bad/1inch-fusion-plus-common';
 
 import factoryContract from '../../../contracts/evm/compiled/TestEscrowFactory.sol/TestEscrowFactory.json' with { type: 'json' };
 import resolverContract from '../../../contracts/evm/compiled/Resolver.sol/Resolver.json' with { type: 'json' };
@@ -32,20 +32,25 @@ try {
   console.log(`Local EVM node started on port ${config.server.port}`);
   const localRpcUrl = `http://localhost:${config.server.port}/1`;
 
-  console.log('Deploying escrow factory...');
   const wallet = new EvmChainAccount({
     userPrivateKey: config.chain.deployerPrivateKey,
     rpcUrl: localRpcUrl,
     chainId: config.chain.chainId,
-    tokens: new Map(),
-    donorTokenAddresses: new Map(),
+    tokens: ethereumTokens,
+    tokenDonors: ethereumTokenDonors,
   });
+  await wallet.start();
+  console.log('Deployer address:', await wallet.getAddress());
+  await wallet.topUpFromDonor(parseEther('10'));
+
+  console.log('Deploying escrow factory...');
+
   const escrowFactoryAddress = await evmChainHelpers.deploy(
     factoryContract,
     [
-      config.chain.limitOrderProtocolContractAddress,
-      config.chain.wrappedNativeTokenAddress,
-      Sdk.Address.fromBigInt(0n).toString(), // accessToken,
+      protocolConfig.ethereum.limitOrderProtocolContractAddress,
+      protocolConfig.ethereum.wrappedNativeContractAddress,
+      '0x0000000000000000000000000000000000000000', // accessToken,
       await wallet.getAddress(), // owner
       60 * 30, // src rescue delay
       60 * 30, // dst rescue delay
@@ -59,7 +64,7 @@ try {
     resolverContract,
     [
       escrowFactoryAddress,
-      config.chain.limitOrderProtocolContractAddress,
+      protocolConfig.ethereum.limitOrderProtocolContractAddress,
       config.chain.resolverOwnerAddress,
     ],
     wallet.signer

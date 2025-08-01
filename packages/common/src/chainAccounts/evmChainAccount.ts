@@ -1,4 +1,4 @@
-import { AbiCoder, Contract, Wallet, JsonRpcProvider, Signer } from 'ethers';
+import { AbiCoder, Contract, Wallet, JsonRpcProvider, Signer, type TransactionResponse } from 'ethers';
 
 import type { Erc20Token } from '../models/index.js';
 import ERC20 from '../../../../contracts/evm/compiled/IERC20.sol/IERC20.json' with { type: 'json' };
@@ -8,7 +8,7 @@ interface EvmChainAccountOptions {
   rpcUrl: string;
   chainId: number;
   tokens: ReadonlyMap<string, Erc20Token>;
-  donorTokenAddresses: ReadonlyMap<string, string>;
+  tokenDonors: ReadonlyMap<string, string>;
 }
 
 const coder = AbiCoder.defaultAbiCoder();
@@ -19,12 +19,12 @@ export class EvmChainAccount {
   readonly signer: Signer;
 
   protected readonly tokens: ReadonlyMap<string, Erc20Token>;
-  protected readonly donorTokenAddresses: ReadonlyMap<string, string>;
+  protected readonly tokenDonors: ReadonlyMap<string, string>;
 
   constructor(options: EvmChainAccountOptions) {
     this.chainId = options.chainId;
     this.tokens = options.tokens;
-    this.donorTokenAddresses = options.donorTokenAddresses;
+    this.tokenDonors = options.tokenDonors;
 
     this.provider = new JsonRpcProvider(options.rpcUrl, this.chainId, {
       cacheTimeout: -1,
@@ -34,7 +34,7 @@ export class EvmChainAccount {
   }
 
   async start() {
-    for (const donorAddress of this.donorTokenAddresses.values()) {
+    for (const donorAddress of this.tokenDonors.values()) {
       await this.provider.send('anvil_impersonateAccount', [donorAddress]);
     }
   }
@@ -56,18 +56,42 @@ export class EvmChainAccount {
     return tokenContract.balanceOf!(await this.getAddress());
   }
 
-  async topUpFromDonor(tokenAddress: string, amount: bigint): Promise<void> {
-    const donorAddress = this.donorTokenAddresses.get(tokenAddress);
-    if (!donorAddress)
-      throw new Error(`Donor address for token ${tokenAddress} is not specified`);
+  async topUpFromDonor(amount: bigint): Promise<void>;
+  async topUpFromDonor(tokenAddress: string, amount: bigint): Promise<void>;
+  async topUpFromDonor(tokenAddressOrAmount: string | bigint, amountParam?: bigint): Promise<void> {
+    let tokenAddress: string;
+    let amount: bigint;
+    if (typeof tokenAddressOrAmount === 'bigint') {
+      tokenAddress = 'native';
+      amount = tokenAddressOrAmount;
+    }
+    else {
+      tokenAddress = tokenAddressOrAmount;
+      amount = amountParam!;
+    }
 
-    console.log(`Top up ${tokenAddress} from donor ${donorAddress} with amount ${amount}...`);
+    const donorAddress = this.tokenDonors.get(tokenAddress);
+    if (!donorAddress)
+      throw new Error(`Donor address for ${tokenAddress} token is not specified`);
+
+    console.log(`Top up ${tokenAddress} token from donor ${donorAddress} with amount ${amount}...`);
 
     const donorSigner = await this.provider.getSigner(donorAddress);
-    const tx = await donorSigner.sendTransaction({
-      to: tokenAddress.toString(),
-      data: '0xa9059cbb' + coder.encode(['address', 'uint256'], [await this.getAddress(), amount]).slice(2),
-    });
+    const destinationAddress = await this.getAddress();
+
+    let tx: TransactionResponse;
+    if (tokenAddress === 'native') {
+      tx = await donorSigner.sendTransaction({
+        to: destinationAddress,
+        value: amount,
+      });
+    }
+    else {
+      tx = await donorSigner.sendTransaction({
+        to: tokenAddress.toString(),
+        data: '0xa9059cbb' + coder.encode(['address', 'uint256'], [destinationAddress, amount]).slice(2),
+      });
+    }
 
     await tx.wait();
 

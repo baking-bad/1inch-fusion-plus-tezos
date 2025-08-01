@@ -2,7 +2,7 @@ import readline, { Interface as ReadlineInterface } from 'node:readline';
 
 import { parseUnits, formatUnits } from 'ethers';
 
-import { utils, EvmChainAccount, TezosChainAccount } from '@baking-bad/1inch-fusion-plus-common';
+import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens } from '@baking-bad/1inch-fusion-plus-common';
 
 import config from './config.js';
 import { SwapManager } from './swapManager.js';
@@ -35,13 +35,13 @@ export class App {
       userPrivateKey: config.evmChain.userPrivateKey,
       rpcUrl: config.evmChain.rpcUrl,
       chainId: config.evmChain.chainId,
-      tokens: config.evmChain.tokens,
-      donorTokenAddresses: config.evmChain.donorTokenAddresses,
+      tokens: ethereumTokens,
+      tokenDonors: ethereumTokenDonors,
     });
     this.tezosAccount = new TezosChainAccount({
       userPrivateKey: config.tezosChain.userPrivateKey,
       rpcUrl: config.tezosChain.rpcUrl,
-      tokens: config.tezosChain.tokens,
+      tokens: tezosTokens,
     });
     this.swapManager = new SwapManager(this.evmAccount, this.tezosAccount);
   }

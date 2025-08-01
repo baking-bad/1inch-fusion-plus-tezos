@@ -15,6 +15,10 @@ export interface TezosToken {
    * Token decimals, e.g., 8 for tzBTC
    */
   readonly decimals: number;
+  /**
+   * Optional token ID for FA2 tokens
+   */
+  readonly tokenId?: string;
 }
 
 export interface Erc20Token {

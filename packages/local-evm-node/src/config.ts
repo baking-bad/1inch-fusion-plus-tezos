@@ -19,8 +19,6 @@ interface ChainConfig {
   readonly chainId: number;
   readonly deployerPrivateKey: string;
   readonly resolverOwnerAddress: string;
-  readonly limitOrderProtocolContractAddress: string;
-  readonly wrappedNativeTokenAddress: string;
 }
 
 export interface Config {
@@ -56,8 +54,6 @@ const createChainConfig = (): ChainConfig => {
     chainId,
     deployerPrivateKey,
     resolverOwnerAddress,
-    limitOrderProtocolContractAddress: '0x111111125421ca6dc452d289314280a0f8842a65',
-    wrappedNativeTokenAddress: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   };
 };
 

@@ -14,10 +14,6 @@ interface EvmChainConfig {
   readonly userPrivateKey: string;
   readonly rpcUrl: string;
   readonly chainId: number;
-  readonly limitOrderProtocolContractAddress: string;
-  readonly wrappedNativeTokenAddress: string;
-  readonly tokens: ReadonlyMap<string, Erc20Token>;
-  readonly donorTokenAddresses: ReadonlyMap<string, string>;
   readonly escrowFactoryAddress: string;
   readonly resolverAddress: string;
 }
@@ -25,7 +21,6 @@ interface EvmChainConfig {
 interface TezosChainConfig {
   readonly userPrivateKey: string;
   readonly rpcUrl: string;
-  readonly tokens: ReadonlyMap<string, TezosToken>;
   readonly escrowFactoryAddress: string;
   readonly resolverAddress: string;
 }
@@ -53,26 +48,10 @@ const createEvmChainConfig = (): EvmChainConfig => {
   if (!resolverAddress)
     throw new Error('The EVM_CHAIN__RESOLVER_ADDRESS is not specified');
 
-  const ethereumTokens = new Map<string, Erc20Token>([
-    {
-      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      symbol: 'USDC',
-      decimals: 6,
-    },
-  ].map(token => [token.symbol.toLowerCase(), token]));
-
-  const donorTokenAddresses = new Map<string, string>([
-    ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', '0xd54F23BE482D9A58676590fCa79c8E43087f92fB'],
-  ]);
-
   return {
     userPrivateKey,
     rpcUrl,
     chainId: 1,
-    limitOrderProtocolContractAddress: '0x111111125421ca6dc452d289314280a0f8842a65',
-    wrappedNativeTokenAddress: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    tokens: ethereumTokens,
-    donorTokenAddresses,
     escrowFactoryAddress,
     resolverAddress,
   };
@@ -95,19 +74,9 @@ const createTezosChainConfig = (): TezosChainConfig => {
   if (!resolverAddress)
     throw new Error('The TEZOS_CHAIN__RESOLVER_ADDRESS is not specified');
 
-  const tezosTokens = new Map<string, TezosToken>(([
-    {
-      address: 'KT1V2ak1MfNd3w4oyKD64ehYU7K4CrpUcDGR',
-      type: 'FA2',
-      symbol: 'USDT',
-      decimals: 6,
-    },
-  ] satisfies TezosToken[]).map(token => [token.symbol.toLowerCase(), token]));
-
   return {
     userPrivateKey,
     rpcUrl,
-    tokens: tezosTokens,
     escrowFactoryAddress,
     resolverAddress,
   };
