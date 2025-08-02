@@ -314,9 +314,11 @@ export class SwapManager {
     return order.getOrderHash(ChainIds.Ethereum);
   }
 
-  private async signOrderFromTezos(_order: Sdk.CrossChainOrder): Promise<string> {
-    // TODO: Implement signing for Tezos orders
-    return 'edsk';
+  private async signOrderFromTezos(order: Sdk.CrossChainOrder): Promise<string> {
+    const orderHash = this.getOrderHashFromTezos(order);
+    const signature = await this.tezosChainAccount.tezosToolkit.signer.sign(orderHash.replace('0x', ''));
+
+    return signature.prefixSig;
   }
 
   private getOrderHashFromTezos(order: Sdk.CrossChainOrder): string {
