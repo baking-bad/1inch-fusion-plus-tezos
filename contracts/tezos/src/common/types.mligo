@@ -27,6 +27,27 @@ type immutables = {
   timelocks : timelocks;
 }
 
+type factory_timelocks = {
+  src_withdrawal : int;
+  src_public_withdrawal : int;
+  src_cancellation : int;
+  src_public_cancellation : int;
+  dst_withdrawal : int;
+  dst_public_withdrawal : int;
+  dst_cancellation : int;
+}
+
+type factory_immutables = {
+  order_hash : bytes;
+  hashlock : bytes;
+  maker : address;
+  taker : address;
+  token : token;
+  amount : nat;
+  safety_deposit : tez;
+  timelocks : factory_timelocks;
+}
+
 type order = {
   salt: nat;
   maker: bytes;

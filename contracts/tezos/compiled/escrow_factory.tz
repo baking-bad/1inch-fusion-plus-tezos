@@ -8,13 +8,13 @@
            (nat %amount)
            (mutez %safety_deposit)
            (pair %timelocks
-              (timestamp %src_withdrawal)
-              (timestamp %src_public_withdrawal)
-              (timestamp %src_cancellation)
-              (timestamp %src_public_cancellation)
-              (timestamp %dst_withdrawal)
-              (timestamp %dst_public_withdrawal)
-              (timestamp %dst_cancellation)))
+              (int %src_withdrawal)
+              (int %src_public_withdrawal)
+              (int %src_cancellation)
+              (int %src_public_cancellation)
+              (int %dst_withdrawal)
+              (int %dst_public_withdrawal)
+              (int %dst_cancellation)))
         (pair %deploy_src
            (bytes %order_hash)
            (bytes %hashlock)
@@ -24,16 +24,81 @@
            (nat %amount)
            (mutez %safety_deposit)
            (pair %timelocks
-              (timestamp %src_withdrawal)
-              (timestamp %src_public_withdrawal)
-              (timestamp %src_cancellation)
-              (timestamp %src_public_cancellation)
-              (timestamp %dst_withdrawal)
-              (timestamp %dst_public_withdrawal)
-              (timestamp %dst_cancellation)))) ;
+              (int %src_withdrawal)
+              (int %src_public_withdrawal)
+              (int %src_cancellation)
+              (int %src_public_cancellation)
+              (int %dst_withdrawal)
+              (int %dst_public_withdrawal)
+              (int %dst_cancellation)))) ;
   storage
     (pair (set %hashlocks bytes) (set %allowed_operators address) (address %admin)) ;
-  code { UNPAIR ;
+  code { LAMBDA
+           (pair bytes
+                 bytes
+                 address
+                 address
+                 (or (or address (pair address nat)) unit)
+                 nat
+                 mutez
+                 (pair int int int int int int int))
+           (pair bytes
+                 bytes
+                 address
+                 address
+                 (or (or address (pair address nat)) unit)
+                 nat
+                 mutez
+                 (pair timestamp timestamp timestamp timestamp timestamp timestamp timestamp))
+           { DUP ;
+             GET 14 ;
+             NOW ;
+             DUP 2 ;
+             GET 12 ;
+             DUP 2 ;
+             ADD ;
+             DUP 3 ;
+             GET 11 ;
+             DUP 3 ;
+             ADD ;
+             DUP 4 ;
+             GET 9 ;
+             DUP 4 ;
+             ADD ;
+             DUP 5 ;
+             GET 7 ;
+             DUP 5 ;
+             ADD ;
+             DUP 6 ;
+             GET 5 ;
+             DUP 6 ;
+             ADD ;
+             DUP 7 ;
+             GET 3 ;
+             DUP 7 ;
+             ADD ;
+             DIG 7 ;
+             CAR ;
+             DIG 7 ;
+             ADD ;
+             PAIR 7 ;
+             DUP 2 ;
+             GET 13 ;
+             DUP 3 ;
+             GET 11 ;
+             DUP 4 ;
+             GET 9 ;
+             DUP 5 ;
+             GET 7 ;
+             DUP 6 ;
+             GET 5 ;
+             DUP 7 ;
+             GET 3 ;
+             DIG 7 ;
+             CAR ;
+             PAIR 8 } ;
+         SWAP ;
+         UNPAIR ;
          IF_LEFT
            { DUP ;
              GET 9 ;
@@ -50,6 +115,9 @@
              EQ ;
              IF { DROP } { FAILWITH } ;
              DUP 2 ;
+             DIG 4 ;
+             SWAP ;
+             EXEC ;
              SWAP ;
              NONE key_hash ;
              CREATE_CONTRACT
@@ -362,6 +430,9 @@
              EQ ;
              IF { DROP } { FAILWITH } ;
              DUP ;
+             DIG 3 ;
+             SWAP ;
+             EXEC ;
              DUP 2 ;
              GET 13 ;
              NONE key_hash ;

@@ -27,7 +27,7 @@ export const tezosTokens = {
   } as const satisfies TezosNativeToken,
   usdt: {
     type: 'fa1.2',
-    address: 'KT1VLCnUsB5vMuoaemycwza1iKwK3BMHr16C',
+    address: 'KT1Hrnr3Tn5HDCS8UU5KkDBDu4D6rjXMfkwh',
     symbol: 'USDT',
     decimals: 6,
   } as const satisfies TezosFa12Token,

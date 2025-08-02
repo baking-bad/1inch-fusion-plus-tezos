@@ -112,13 +112,13 @@ export class TezosResolverChainService {
     const deployedAt = timeLocks.deployedAt ? timeLocks.deployedAt : this.getCurrentOperationTimestamp();
 
     return {
-      src_withdrawal: this.prepareTimeLockValue(timeLocks.srcWithdrawal, deployedAt),
-      src_public_withdrawal: this.prepareTimeLockValue(timeLocks.srcPublicWithdrawal, deployedAt),
-      src_cancellation: this.prepareTimeLockValue(timeLocks.srcCancellation, deployedAt),
-      src_public_cancellation: this.prepareTimeLockValue(timeLocks.srcPublicCancellation, deployedAt),
-      dst_withdrawal: this.prepareTimeLockValue(timeLocks.dstWithdrawal, deployedAt),
-      dst_public_withdrawal: this.prepareTimeLockValue(timeLocks.dstPublicWithdrawal, deployedAt),
-      dst_cancellation: this.prepareTimeLockValue(timeLocks.dstCancellation, deployedAt),
+      src_withdrawal: timeLocks.srcWithdrawal,
+      src_public_withdrawal: timeLocks.srcPublicWithdrawal,
+      src_cancellation: timeLocks.srcCancellation,
+      src_public_cancellation: timeLocks.srcPublicCancellation,
+      dst_withdrawal: timeLocks.dstWithdrawal,
+      dst_public_withdrawal: timeLocks.dstPublicWithdrawal,
+      dst_cancellation: timeLocks.dstCancellation,
       // deployed_at: deployedAt.toString(),
     };
   }
