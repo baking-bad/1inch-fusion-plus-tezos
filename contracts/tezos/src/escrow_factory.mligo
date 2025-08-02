@@ -75,6 +75,6 @@ let deploy_dst
   let (origination_op, escrow_contract) = 
     EscrowDst.originate_escrow_dst tez_amount { immutables = map_immutables immutables } in
   let ops = (match immutables.token with
-    | FA fa_token -> [ origination_op; Tokens.transfer_fa fa_token immutables.maker escrow_contract immutables.amount ]
+    | FA fa_token -> [ origination_op; Tokens.transfer_fa fa_token immutables.taker escrow_contract immutables.amount ]
     | TEZ -> [ origination_op ]) in
   (ops, storage)

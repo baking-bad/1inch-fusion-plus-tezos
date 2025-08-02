@@ -393,7 +393,7 @@
                  DUP 5 ;
                  GET 11 ;
                  DIG 5 ;
-                 GET 5 ;
+                 GET 7 ;
                  DIG 3 ;
                  IF_LEFT
                    { CONTRACT %transfer (pair (address %from) (address %to) (nat %value)) ;
