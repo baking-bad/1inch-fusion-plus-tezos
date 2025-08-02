@@ -1,2 +1,2 @@
-# 1inch Fusion+
+# 1inch Fusion+ - Tezos
 
