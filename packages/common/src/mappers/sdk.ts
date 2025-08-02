@@ -20,8 +20,8 @@ export const mapOrderToSdkCrossChainOrder = (order: CrossChainOrder): Sdk.CrossC
     },
     {
       hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
-      srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
-      dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
+      srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : (ChainIds.TezosGhostnetSdkChainId as any as Sdk.SupportedChain),
+      dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : (ChainIds.TezosGhostnetSdkChainId as any as Sdk.SupportedChain),
       srcSafetyDeposit: order.escrowParams.srcSafetyDeposit,
       dstSafetyDeposit: order.escrowParams.dstSafetyDeposit,
       timeLocks: Sdk.TimeLocks.new({

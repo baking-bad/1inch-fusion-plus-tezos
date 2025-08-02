@@ -53,6 +53,10 @@ export class EvmChainAccount {
   }
 
   async getTokenBalance(tokenAddress: string): Promise<bigint> {
+    if (tokenAddress === 'native') {
+      return this.provider.getBalance(await this.getAddress());
+    }
+
     const tokenContract = new Contract(tokenAddress.toString(), ERC20.abi, this.provider);
 
     return tokenContract.balanceOf!(await this.getAddress());
@@ -76,7 +80,9 @@ export class EvmChainAccount {
     if (!donorAddress)
       throw new Error(`Donor address for ${tokenAddress} token is not specified`);
 
-    console.log(`Top up ${tokenAddress} token from donor ${donorAddress} with amount ${amount}...`);
+    const senderAddress = await this.getAddress();
+    const previousBalance = await this.getTokenBalance(tokenAddress);
+    console.log(senderAddress, `: Top up ${tokenAddress} token from donor ${donorAddress} with amount ${amount}...`);
 
     const donorSigner = await this.provider.getSigner(donorAddress);
     const destinationAddress = await this.getAddress();
@@ -97,11 +103,13 @@ export class EvmChainAccount {
 
     await tx.wait();
 
-    console.log(`Top up completed: ${tx.hash}`);
+    const newBalance = await this.getTokenBalance(tokenAddress);
+    console.log(senderAddress, `: Top up completed: ${previousBalance} → ${newBalance}`, `tx: ${tx.hash}`);
   }
 
   async approveUnlimited(tokenAddress: string, spender: string): Promise<void> {
-    console.log(`Approving unlimited allowance for ${tokenAddress} token to ${spender}...`);
+    const senderAddress = await this.getAddress();
+    console.log(senderAddress, `: Approving unlimited allowance for ${tokenAddress} token to ${spender}...`);
     const currentApprove = await this.getAllowance(tokenAddress, spender);
 
     // for usdt like tokens
@@ -110,7 +118,7 @@ export class EvmChainAccount {
     }
 
     await this.approveToken(tokenAddress, spender, (1n << 256n) - 1n);
-    console.log(`Unlimited allowance approved for ${tokenAddress} token to ${spender}`);
+    console.log(senderAddress, `: Unlimited allowance approved for ${tokenAddress} token to ${spender}`);
   }
 
   async getAllowance(token: string, spender: string): Promise<bigint> {

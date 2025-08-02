@@ -11,8 +11,12 @@ export class EvmResolverChainService {
 
   constructor(
     private readonly evmChainAccount: EvmChainAccount,
-    public readonly resolverContractAddress: string
+    private readonly resolverContractAddress: string
   ) { }
+
+  async getResolverAddress(): Promise<string> {
+    return this.resolverContractAddress;
+  }
 
   public deploySrc(
     chainId: number,

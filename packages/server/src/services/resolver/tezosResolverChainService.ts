@@ -1,10 +1,13 @@
-import { TezosChainAccount, utils } from '@baking-bad/1inch-fusion-plus-common';
-import type { Immutables } from '../../models/core.js';
+import { Immutables, TezosChainAccount, utils } from '@baking-bad/1inch-fusion-plus-common';
 
 import type { Transaction } from './models.js';
 
 export class TezosResolverChainService {
   constructor(private readonly tezosChainAccount: TezosChainAccount) { }
+
+  getResolverAddress(): Promise<string> {
+    return this.tezosChainAccount.getAddress();
+  }
 
   async deploySrc(immutables: Immutables, signature: string): Promise<readonly [tx: Transaction, escrowAddress: string]> {
     await utils.wait(1000);

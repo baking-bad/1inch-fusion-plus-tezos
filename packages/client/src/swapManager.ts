@@ -12,7 +12,6 @@ import {
   type Erc20Token,
   type CrossChainOrder,
   type ChainId,
-  tezosChainHelpers,
   SignedCrossChainOrder,
   mappers
 } from '@baking-bad/1inch-fusion-plus-common';
@@ -31,8 +30,6 @@ interface Order {
   secret: string;
   status: 'created' | 'sent' | 'withdrawn' | 'cancelled' | 'failed';
 }
-
-const TezosGhostnetSdkChainId = Sdk.NetworkEnum.BINANCE;
 
 export class SwapManager {
   private readonly _orders: Order[] = [];
@@ -256,8 +253,8 @@ export class SwapManager {
       },
     };
     const sdkOrder = mappers.sdk.mapOrderToSdkCrossChainOrder(order);
-    const signature = await this.signOrderFromEvm(sdkOrder);
-    const orderHash = sdkOrder.getOrderHash(TezosGhostnetSdkChainId);
+    const signature = await this.signOrderFromTezos(sdkOrder);
+    const orderHash = sdkOrder.getOrderHash(ChainIds.TezosGhostnetSdkChainId);
 
     return [
       {
@@ -281,5 +278,9 @@ export class SwapManager {
       { Order: typedData.types[typedData.primaryType]! },
       typedData.message
     );
+  }
+
+  private async signOrderFromTezos(order: Sdk.CrossChainOrder): Promise<string> {
+    return 'edsk';
   }
 }

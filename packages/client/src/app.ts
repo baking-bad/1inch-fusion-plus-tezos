@@ -2,7 +2,7 @@ import readline, { Interface as ReadlineInterface } from 'node:readline';
 
 import { parseUnits, formatUnits, parseEther } from 'ethers';
 
-import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId } from '@baking-bad/1inch-fusion-plus-common';
+import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId, protocolConfig } from '@baking-bad/1inch-fusion-plus-common';
 
 import config from './config.js';
 import { SwapManager } from './swapManager.js';
@@ -66,7 +66,7 @@ export class App {
     await this.evmAccount.topUpFromDonor(parseEther('10'));
     const ethUsdcToken = ethereumTokens.get('usdc')!;
     await this.evmAccount.topUpFromDonor(ethUsdcToken.address, parseUnits('1000', 6));
-    await this.evmAccount.approveUnlimited(ethUsdcToken.address, config.evmChain.escrowFactoryAddress);
+    await this.evmAccount.approveUnlimited(ethUsdcToken.address, protocolConfig.ethereum.limitOrderProtocolContractAddress);
 
     console.log('Type "help" for available commands.');
     console.log('');
