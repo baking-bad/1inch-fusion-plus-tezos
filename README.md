@@ -28,8 +28,8 @@ The system consists of:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/baking-bad/1inch-fusion-plus.git
-cd 1inch-fusion-plus
+git clone https://github.com/baking-bad/1inch-fusion-plus-tezos.git
+cd 1inch-fusion-plus-tezos
 ```
 
 2. Install dependencies and build the project:
