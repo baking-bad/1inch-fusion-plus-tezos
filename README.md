@@ -37,4 +37,33 @@ cd 1inch-fusion-plus-tezos
 npm run build
 ```
 
-## TODO
+## Run the Services
+
+To run the system locally, follow these steps:
+
+1. **Start the local EVM node**
+
+   This service runs a local EVM environment and allows testing of swap execution on the EVM side.
+
+   ```bash
+   cd packages/local-evm-node
+   npm start
+   ```
+
+2. **Start the resolver server**
+
+   This service listens for cross-chain orders and executes them on both Tezos and Ethereum.
+
+   ```bash
+   cd packages/server
+   npm start
+   ```
+
+3. **Start the client application**
+
+   The CLI client allows you to initiate and finalize cross-chain swaps.
+
+   ```bash
+   cd packages/client
+   npm start
+   ```
