@@ -1,0 +1,94 @@
+type token_id_t = nat;
+
+type transfer_destination_t = /* @layout:comb */ {
+    to_: address,
+    token_id: token_id_t,
+    amount: nat
+};
+
+type transfer_param_t = /* @layout:comb */ {
+    from_: address,
+    txs: list<transfer_destination_t>
+};
+
+type balance_of_request_t = /* @layout:comb */ {
+    owner: address,
+    token_id: token_id_t
+};
+
+type balance_of_response_t = /* @layout:comb */ {
+    request: balance_of_request_t,
+    balance: nat
+};
+
+type balance_params_t = /* @layout:comb */ {
+    requests: list<balance_of_request_t>,
+    callback: contract<list<balance_of_response_t>>
+};
+
+type operator_param_t = /* @layout:comb */ {
+    owner: address,
+    operator: address,
+    token_id: token_id_t
+};
+
+type update_operator_param_t = /* @layout:comb */
+    | ["Add_operator", operator_param_t]
+    | ["Remove_operator", operator_param_t];
+
+type transfer_params_t = list<transfer_param_t>;
+type update_operator_params_t = list<update_operator_param_t>;
+
+type token_meta_info_t = /* @layout:comb */ {
+    token_id: nat,
+    token_info: map<string, bytes>
+};
+
+type update_meta_param_t = token_meta_info_t;
+
+type account_t = /* @layout:comb */ {
+    balances: map<token_id_t, nat>,
+    updated: timestamp,
+    permits: set<address>
+};
+
+type token_info_t = /* @layout:comb */ {
+    total_supply: nat
+};
+
+type token_metadata_info_t = /* @layout:comb */ {
+    token_id: token_id_t,
+    token_info: map<string, bytes>
+};
+
+type storage_t = /* @layout:comb */ {
+    account_info: big_map<address, account_t>,
+    token_info: big_map<token_id_t, token_info_t>,
+    metadata: big_map<string, bytes>,
+    token_metadata: big_map<token_id_t, token_metadata_info_t>,
+    minters: set<address>,
+    admin: address,
+    last_token_id: nat
+};
+
+type new_token_params_t = map<string, bytes>;
+
+type asset_param_t = /* @layout:comb */ {
+    token_id: token_id_t,
+    receiver: address,
+    amount: nat
+};
+
+type asset_params_t = list<asset_param_t>;
+
+type return_t = [list<operation>, storage_t];
+
+type action_t =
+    | ["Create_token", new_token_params_t]
+    | ["Mint_asset", asset_params_t]
+    | ["Transfer", transfer_params_t]
+    | ["Balance_of", balance_params_t]
+    | ["Update_operators", update_operator_params_t]
+    | ["Update_metadata", update_meta_param_t];
+
+type typed_token_address_t = typed_address<action_t, storage_t>;
