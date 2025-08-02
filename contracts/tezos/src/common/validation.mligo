@@ -61,13 +61,13 @@ let assert_valid_order
 
 [@inline]
 let assert_sender_allowed_resolver
-    (allowed_resolvers : address set)
+    (allowed_resolvers : address big_set)
     : unit =
-  Assert.Error.assert (Set.mem (Tezos.get_sender ()) allowed_resolvers) Errors.not_allowed_resolver
+  Assert.Error.assert (Big_set.mem (Tezos.get_sender ()) allowed_resolvers) Errors.not_allowed_resolver
 
 [@inline]
 let assert_not_used_hashlock
     (hashlock : bytes)
-    (hashlocks : bytes set)
+    (hashlocks : bytes big_set)
     : unit =
-  Assert.Error.assert (not (Set.mem hashlock hashlocks)) Errors.already_used_hashlock
+  Assert.Error.assert (not (Big_set.mem hashlock hashlocks)) Errors.already_used_hashlock

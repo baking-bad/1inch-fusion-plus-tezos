@@ -19,13 +19,14 @@ const initToolkit = async (privateKey: string) => {
   return toolkit;
 };
 
-const originateEscrowFactory = async (originatorToolkit: TezosToolkit, allowed_resolvers: string[]): Promise<string> => {
+const originateEscrowFactory = async (originatorToolkit: TezosToolkit, allowed_resolver: string): Promise<string> => {
   const code = fs.readFileSync('../compiled/escrow_factory.tz', 'utf8');
 
   const initialStorage = {
-    src_hashlocks: [],
-    dst_hashlocks: [],
-    allowed_resolvers,
+    hashlocks: [],
+    allowed_resolvers: MichelsonMap.fromLiteral({
+      [allowed_resolver]: true
+    }),
     admin: await originatorToolkit.signer.publicKeyHash()
   };
 
@@ -238,7 +239,7 @@ const main = async () => {
   const userToolkit = await initToolkit(USER_PRIVATE_KEY);
   const resolverToolkit = await initToolkit(RESOLVER_PRIVATE_KEY);
 
-  const escrowFactoryAddress = await originateEscrowFactory(originatorToolkit, [await resolverToolkit.signer.publicKeyHash()]);
+  const escrowFactoryAddress = await originateEscrowFactory(originatorToolkit, await resolverToolkit.signer.publicKeyHash());
   const fa12Address = await originateFa12(originatorToolkit);
   const fa2Address = await originateFa2(originatorToolkit);
 

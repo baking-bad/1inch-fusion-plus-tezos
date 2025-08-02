@@ -35,9 +35,8 @@
                  (int %dst_public_withdrawal)
                  (int %dst_cancellation))))) ;
   storage
-    (pair (set %src_hashlocks bytes)
-          (set %dst_hashlocks bytes)
-          (set %allowed_resolvers address)
+    (pair (big_map %hashlocks bytes unit)
+          (big_map %allowed_resolvers address unit)
           (address %admin)) ;
   code { LAMBDA
            (pair int int int int int int int)
@@ -77,17 +76,10 @@
          IF_LEFT
            { PUSH string "NOT_ALLOWED_RESOLVER" ;
              DUP 3 ;
-             GET 5 ;
+             GET 3 ;
              SENDER ;
              MEM ;
              IF { DROP } { FAILWITH } ;
-             DUP 2 ;
-             GET 3 ;
-             DUP 2 ;
-             GET 3 ;
-             MEM ;
-             NOT ;
-             IF {} { PUSH string "ALREADY_USED_HASHLOCK" ; FAILWITH } ;
              DUP ;
              GET 9 ;
              IF_LEFT
@@ -396,7 +388,7 @@
                { NIL operation ;
                  DUP 5 ;
                  GET 11 ;
-                 DUP 6 ;
+                 DIG 5 ;
                  GET 7 ;
                  DIG 3 ;
                  IF_LEFT
@@ -425,21 +417,14 @@
                      CONS ;
                      TRANSFER_TOKENS } ;
                  CONS }
-               { DIG 2 ; DROP 2 ; NIL operation } ;
+               { DIG 2 ; DIG 3 ; DROP 3 ; NIL operation } ;
              SWAP ;
              CONS ;
-             DUP 3 ;
-             DIG 3 ;
-             GET 3 ;
-             PUSH bool True ;
-             DIG 4 ;
-             GET 3 ;
-             UPDATE ;
-             UPDATE 3 }
+             SWAP }
            { UNPAIR 3 ;
              PUSH string "NOT_ALLOWED_RESOLVER" ;
              DUP 5 ;
-             GET 5 ;
+             GET 3 ;
              SENDER ;
              MEM ;
              IF { DROP } { FAILWITH } ;
@@ -955,7 +940,8 @@
              DUP 3 ;
              DIG 3 ;
              CAR ;
-             PUSH bool True ;
+             UNIT ;
+             SOME ;
              DIG 4 ;
              GET 8 ;
              UPDATE ;
