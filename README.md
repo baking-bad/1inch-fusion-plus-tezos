@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a cross-chain bridge implementation developed for a [Unite Defi](https://ethglobal.com/events/unite). It provides a solution for executing 1inch Fusion+ cross-chain orders between Tezos and Ethereum networks.
+This project is a cross-chain bridge implementation developed for [Unite Defi](https://ethglobal.com/events/unite). It provides a solution for executing 1inch Fusion+ cross-chain orders between Tezos and Ethereum networks.
 
 The system consists of:
 1. Smart contracts deployed on both EVM-compatible chains and Tezos
