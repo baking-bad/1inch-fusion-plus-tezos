@@ -74,6 +74,7 @@ export function mapCrossChainOrderInfoToDto(model: Models.CrossChainOrderInfo): 
     makingAmount: model.makingAmount.toString(),
     takingAmount: model.takingAmount.toString(),
     maker: model.maker,
+    makerPublicKey: model.makerPublicKey,
     salt: model.salt?.toString(),
     receiver: model.receiver,
   };
@@ -125,6 +126,7 @@ export function mapImmutablesToDto(model: Models.Immutables): Dtos.ImmutablesDto
     orderHash: model.orderHash,
     hashLock: model.hashLock,
     maker: model.maker,
+    makerPublicKey: model.makerPublicKey,
     taker: model.taker,
     token: model.token,
     amount: model.amount.toString(),
@@ -206,6 +208,7 @@ export function mapCrossChainOrderInfoDtoToModel(dto: Dtos.CrossChainOrderInfoDt
     makingAmount: BigInt(dto.makingAmount),
     takingAmount: BigInt(dto.takingAmount),
     maker: dto.maker,
+    makerPublicKey: dto.makerPublicKey,
     salt: dto.salt !== undefined ? BigInt(dto.salt) : undefined,
     receiver: dto.receiver,
   };
@@ -257,6 +260,7 @@ export function mapImmutablesDtoToModel(dto: Dtos.ImmutablesDto): Models.Immutab
     orderHash: dto.orderHash,
     hashLock: dto.hashLock,
     maker: dto.maker,
+    makerPublicKey: dto.makerPublicKey,
     taker: dto.taker,
     token: dto.token,
     amount: BigInt(dto.amount),

@@ -55,6 +55,7 @@ export interface CrossChainOrderInfoDto {
    */
   takingAmount: string;
   maker: string;
+  makerPublicKey?: string;
   salt?: string;
   /**
    * Destination chain receiver address
@@ -147,6 +148,7 @@ export interface ImmutablesDto {
   orderHash: string;
   hashLock: string;
   maker: string;
+  makerPublicKey?: string;
   taker: string;
   token: string;
   amount: string;

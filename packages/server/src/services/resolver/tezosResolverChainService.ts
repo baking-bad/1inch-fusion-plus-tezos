@@ -1,4 +1,4 @@
-import { Immutables, TezosChainAccount, utils } from '@baking-bad/1inch-fusion-plus-common';
+import { Immutables, TezosChainAccount } from '@baking-bad/1inch-fusion-plus-common';
 
 import type { Transaction } from './models.js';
 
@@ -17,7 +17,7 @@ export class TezosResolverChainService {
   }
 
   async deployDst(immutables: Immutables): Promise<readonly [tx: Transaction, escrowAddress: string]> {
-    return this.deploy('dst', immutables, '');
+    return this.deploy('dst', immutables);
   }
 
   async withdraw(escrowAddress: string, secret: string, _immutables: Immutables): Promise<Transaction> {
@@ -49,9 +49,11 @@ export class TezosResolverChainService {
     };
   }
 
+  protected async deploy(side: 'src', immutables: Immutables, signature: string): Promise<readonly [tx: Transaction, escrowAddress: string]>;
+  protected async deploy(side: 'dst', immutables: Immutables): Promise<readonly [tx: Transaction, escrowAddress: string]>;
   protected async deploy(side: 'src' | 'dst', immutables: Immutables, signature?: string): Promise<readonly [tx: Transaction, escrowAddress: string]> {
     const escrowFactoryContract = await this.getEscrowFactoryContract();
-    const params = this.getDeployParams(immutables, signature);
+    const params = side === 'src' ? this.getSrcDeployParams(immutables, signature!) : this.getDstDeployParams(immutables);
 
     const operation = escrowFactoryContract.methodsObject[side === 'src' ? 'deploy_src' : 'deploy_dst']!(params);
     const tx = await operation.send({
@@ -75,7 +77,38 @@ export class TezosResolverChainService {
     return this.tezosChainAccount.tezosToolkit.contract.at(this.escrowFactoryAddress);
   }
 
-  private getDeployParams(immutables: Immutables, _signature?: string) {
+  private getSrcDeployParams(immutables: Immutables, signature: string) {
+    return {
+      order: {
+        maker: immutables.makerPublicKey!,
+        token: immutables.tokenId
+          ? {
+            fA2: {
+              0: immutables.token,
+              1: immutables.tokenId,
+            },
+          }
+          : immutables.token === 'tez'
+            ? {
+              tEZ: undefined,
+            }
+            : {
+              fA12: immutables.token,
+            },
+        amount: immutables.amount.toString(),
+        order_hash: immutables.orderHash.replace('0x', ''),
+        hashlock: immutables.hashLock.replace('0x', ''),
+      },
+      signature,
+      partial_immutables: {
+        taker: immutables.taker,
+        safety_deposit: immutables.safetyDeposit.toString(),
+        timelocks: this.prepareTimeLocks(immutables.timeLocks),
+      },
+    } as const;
+  }
+
+  private getDstDeployParams(immutables: Immutables) {
     return {
       order_hash: immutables.orderHash.replace('0x', ''),
       hashlock: immutables.hashLock.replace('0x', ''),
