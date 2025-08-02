@@ -2,13 +2,12 @@ import { randomBytes } from 'node:crypto';
 
 import Sdk from '@1inch/cross-chain-sdk';
 import { uint8ArrayToHex, UINT_40_MAX } from '@1inch/byte-utils';
-import { parseEther, parseUnits } from 'ethers';
+import { parseUnits } from 'ethers';
 
 import {
   ChainIds,
   type EvmChainAccount,
   type TezosChainAccount,
-  type TezosToken,
   type Erc20Token,
   type CrossChainOrder,
   type ChainId,
@@ -303,7 +302,8 @@ export class SwapManager {
     return order.getOrderHash(ChainIds.Ethereum);
   }
 
-  private async signOrderFromTezos(order: Sdk.CrossChainOrder): Promise<string> {
+  private async signOrderFromTezos(_order: Sdk.CrossChainOrder): Promise<string> {
+    // TODO: Implement signing for Tezos orders
     return 'edsk';
   }
 

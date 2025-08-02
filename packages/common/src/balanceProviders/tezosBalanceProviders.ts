@@ -1,5 +1,5 @@
 import { TezosToolkit } from '@taquito/taquito';
-import { formatUnits, parseUnits } from 'ethers';
+import { formatUnits } from 'ethers';
 
 import { TezosFa2Token, TezosFaToken, TezosToken } from '../models/tokens.js';
 import { BalanceProvider } from './balanceProvider.js';

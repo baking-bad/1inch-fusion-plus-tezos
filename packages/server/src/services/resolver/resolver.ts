@@ -4,7 +4,6 @@ import {
   ChainIds,
   Immutables,
   mappers,
-  tezosChainHelpers,
   type EvmChainAccount,
   type SignedCrossChainOrder,
   type TezosChainAccount
@@ -262,12 +261,11 @@ export class Resolver {
     throw new Error(`Unsupported chain combination: ${orderContext.order.order.escrowParams.srcChainId} to ${orderContext.order.order.escrowParams.dstChainId}`);
   }
 
-  async cancelSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
+  async cancelSwap(_orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
     throw new Error('Cancel swap is not implemented yet');
   }
 
   private buildImmutables({
-    chainId,
     deployedAt,
     order,
     side,

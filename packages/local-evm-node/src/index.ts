@@ -1,4 +1,3 @@
-import { parseEther } from 'ethers';
 import { createServer } from 'prool';
 import { anvil } from 'prool/instances';
 

@@ -2,8 +2,6 @@ import { Immutables, TezosChainAccount, utils } from '@baking-bad/1inch-fusion-p
 
 import type { Transaction } from './models.js';
 
-const oneWeekInSeconds = 7n * 24n * 60n * 60n; // 7 days in seconds
-
 export class TezosResolverChainService {
   constructor(
     private readonly tezosChainAccount: TezosChainAccount,
@@ -22,7 +20,7 @@ export class TezosResolverChainService {
     return this.deploy('dst', immutables, '');
   }
 
-  async withdraw(escrowAddress: string, secret: string, immutables: Immutables): Promise<Transaction> {
+  async withdraw(escrowAddress: string, secret: string, _immutables: Immutables): Promise<Transaction> {
     const escrowContract = await this.tezosChainAccount.tezosToolkit.contract.at(escrowAddress);
     const params = secret.replace('0x', '');
 
@@ -37,7 +35,7 @@ export class TezosResolverChainService {
     };
   }
 
-  async cancel(escrowAddress: string, immutables: Immutables): Promise<Transaction> {
+  async cancel(_escrowAddress: string, _immutables: Immutables): Promise<Transaction> {
     await utils.wait(1000);
 
     return {
@@ -73,7 +71,7 @@ export class TezosResolverChainService {
     return this.tezosChainAccount.tezosToolkit.contract.at(this.escrowFactoryAddress);
   }
 
-  private getDeployParams(immutables: Immutables, signature?: string) {
+  private getDeployParams(immutables: Immutables, _signature?: string) {
     return {
       order_hash: immutables.orderHash.replace('0x', ''),
       hashlock: immutables.hashLock.replace('0x', ''),
@@ -112,7 +110,6 @@ export class TezosResolverChainService {
       dst_withdrawal: timeLocks.dstWithdrawal,
       dst_public_withdrawal: timeLocks.dstPublicWithdrawal,
       dst_cancellation: timeLocks.dstCancellation,
-      // deployed_at: deployedAt.toString(),
     };
   }
 }
