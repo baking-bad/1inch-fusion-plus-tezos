@@ -6,12 +6,12 @@ import type { TezosToken } from '../models/index.js';
 interface TezosChainAccountOptions {
   userPrivateKey: string;
   rpcUrl: string;
-  tokens: ReadonlyMap<string, TezosToken>;
+  tokens: Record<string, TezosToken>;
 }
 
 export class TezosChainAccount {
   readonly tezosToolkit: TezosToolkit;
-  protected readonly tokens: ReadonlyMap<string, TezosToken>;
+  protected readonly tokens: Readonly<Record<string, TezosToken>>;
 
   constructor(options: TezosChainAccountOptions) {
     this.tokens = options.tokens;
@@ -33,6 +33,6 @@ export class TezosChainAccount {
   }
 
   getToken(tokenSymbol: string): TezosToken | undefined {
-    return this.tokens.get(tokenSymbol.toLowerCase());
+    return this.tokens[tokenSymbol.toLowerCase()];
   }
 }

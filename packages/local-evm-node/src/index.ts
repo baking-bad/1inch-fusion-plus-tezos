@@ -41,7 +41,7 @@ try {
   });
   await wallet.start();
   console.log('Deployer address:', await wallet.getAddress());
-  await wallet.topUpFromDonor(parseEther('10'));
+  await wallet.topUpFromDonor(ethereumTokens.eth, 10);
 
   console.log('Deploying escrow factory...');
 
@@ -70,6 +70,20 @@ try {
     wallet.signer
   );
   console.log(`Resolver contract deployed at: ${resolverAddress}`);
+
+  await wallet.provider.send('anvil_impersonateAccount', [resolverAddress]);
+  const resolverContractSigner = await wallet.provider.getSigner(resolverAddress);
+  const evmResolverContractAccount = new EvmChainAccount({
+    privateKeyOrSigner: resolverContractSigner,
+    rpcUrl: localRpcUrl,
+    chainId: config.chain.chainId,
+    tokens: ethereumTokens,
+    tokenDonors: ethereumTokenDonors,
+  });
+  await evmResolverContractAccount.topUpFromDonor(ethereumTokens.eth, 1);
+  await evmResolverContractAccount.topUpFromDonor(ethereumTokens.usdc, 100000);
+  await evmResolverContractAccount.approveUnlimited(ethereumTokens.usdc, escrowFactoryAddress);
+
   console.log('Local EVM node is ready');
   console.log('You can now use the following RPC URL:', localRpcUrl);
   console.log('');

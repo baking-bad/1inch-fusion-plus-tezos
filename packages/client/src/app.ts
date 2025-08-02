@@ -63,10 +63,9 @@ export class App {
     console.log('Ethereum account:', await this.evmAccount.getAddress());
     console.log('Tezos account:', await this.tezosAccount.getAddress());
 
-    await this.evmAccount.topUpFromDonor(parseEther('10'));
-    const ethUsdcToken = ethereumTokens.get('usdc')!;
-    await this.evmAccount.topUpFromDonor(ethUsdcToken.address, parseUnits('1000', 6));
-    await this.evmAccount.approveUnlimited(ethUsdcToken.address, protocolConfig.ethereum.limitOrderProtocolContractAddress);
+    await this.evmAccount.topUpFromDonor(ethereumTokens.eth, 10);
+    await this.evmAccount.topUpFromDonor(ethereumTokens.usdc, 1000);
+    await this.evmAccount.approveUnlimited(ethereumTokens.usdc, protocolConfig.ethereum.limitOrderProtocolContractAddress);
 
     console.log('Type "help" for available commands.');
     console.log('');
@@ -279,8 +278,7 @@ export class App {
         return;
       }
 
-      await this.evmAccount.topUpFromDonor(token.address, parseUnits(amount.toString(), token.decimals));
-      console.log(`Successfully topped up ${amount} from donor for token ${token.address}`);
+      await this.evmAccount.topUpFromDonor(token, amount);
     }
     else {
       console.warn('Top up for Tezos chain is not implemented yet');
@@ -303,8 +301,8 @@ export class App {
         return;
       }
 
-      const balance = await this.evmAccount.getTokenBalance(token.address);
-      console.log(`Balance of ${token.symbol} on EVM chain: ${formatUnits(balance, token.decimals)}`);
+      const balance = await this.evmAccount.getTokenBalance(token, false);
+      console.log(`Balance of ${token.symbol} on EVM chain: ${balance}`);
     }
     else {
       console.warn('Getting balance for Tezos chain is not implemented yet');

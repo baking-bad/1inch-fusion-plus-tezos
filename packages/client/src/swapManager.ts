@@ -13,7 +13,10 @@ import {
   type CrossChainOrder,
   type ChainId,
   SignedCrossChainOrder,
-  mappers
+  mappers,
+  TezosFaToken,
+  ethereumTokens,
+  tezosTokens
 } from '@baking-bad/1inch-fusion-plus-common';
 
 import type { ResolverService } from './resolverService.js';
@@ -62,10 +65,16 @@ export class SwapManager {
       if (!srcToken) {
         throw new Error(`Source token ${srcTokenSymbol} not found`);
       }
+      if (srcToken.type === 'native') {
+        throw new Error('Native tokens are not supported as source tokens');
+      }
 
       const dstToken = this.tezosChainAccount.getToken(dstTokenSymbol);
       if (!dstToken) {
         throw new Error(`Destination token ${dstTokenSymbol} not found`);
+      }
+      if (dstToken.type === 'native') {
+        throw new Error('Native tokens are not supported as destination tokens');
       }
 
       [crossChainOrder, secret] = await this.createCrossChainOrderFromEvm(srcAmount, srcToken, dstAmount, dstToken);
@@ -75,10 +84,16 @@ export class SwapManager {
       if (!srcToken) {
         throw new Error(`Source token ${srcTokenSymbol} not found`);
       }
+      if (srcToken.type === 'native') {
+        throw new Error('Native tokens are not supported as source tokens');
+      }
 
       const dstToken = this.evmChainAccount.getToken(dstTokenSymbol);
       if (!dstToken) {
         throw new Error(`Destination token ${dstTokenSymbol} not found`);
+      }
+      if (dstToken.type === 'native') {
+        throw new Error('Native tokens are not supported as destination tokens');
       }
 
       [crossChainOrder, secret] = await this.createCrossChainOrderFromTezos(srcAmount, srcToken, dstAmount, dstToken);
@@ -118,7 +133,7 @@ export class SwapManager {
     }
   }
 
-  protected async createCrossChainOrderFromEvm(inputAmount: number, srcToken: Erc20Token, outputAmount: number, dstToken: TezosToken): Promise<[order: SignedCrossChainOrder, secret: string]> {
+  protected async createCrossChainOrderFromEvm(inputAmount: number, srcToken: Erc20Token, outputAmount: number, dstToken: TezosFaToken): Promise<[order: SignedCrossChainOrder, secret: string]> {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.evmChainAccount.getAddress();
@@ -138,15 +153,15 @@ export class SwapManager {
         },
         takerAsset: {
           address: dstToken.address,
-          tokenId: dstToken.tokenId,
+          tokenId: dstToken.type === 'fa2' ? dstToken.tokenId : undefined,
         },
       },
       escrowParams: {
         hashLock: hashLock.toString(),
         srcChainId,
         dstChainId,
-        srcSafetyDeposit: parseEther('0.001'),
-        dstSafetyDeposit: parseUnits('0.001', 6),
+        srcSafetyDeposit: parseUnits('0.001', ethereumTokens.eth.decimals),
+        dstSafetyDeposit: parseUnits('0.001', tezosTokens.xtz.decimals),
         timeLocks: {
           srcWithdrawal: 0n, // no finality lock for test
           srcPublicWithdrawal: 120n, // 2m for private withdrawal
@@ -192,7 +207,7 @@ export class SwapManager {
     ];
   }
 
-  protected async createCrossChainOrderFromTezos(inputAmount: number, srcToken: TezosToken, outputAmount: number, dstToken: Erc20Token): Promise<[order: SignedCrossChainOrder, secret: string]> {
+  protected async createCrossChainOrderFromTezos(inputAmount: number, srcToken: TezosFaToken, outputAmount: number, dstToken: Erc20Token): Promise<[order: SignedCrossChainOrder, secret: string]> {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.tezosChainAccount.getAddress();
@@ -209,7 +224,7 @@ export class SwapManager {
         takingAmount: parseUnits(outputAmount.toString(), dstToken.decimals),
         makerAsset: {
           address: srcToken.address,
-          tokenId: srcToken.tokenId,
+          tokenId: srcToken.type === 'fa2' ? srcToken.tokenId : undefined,
         },
         takerAsset: {
           address: dstToken.address,
@@ -219,8 +234,8 @@ export class SwapManager {
         hashLock: hashLock.toString(),
         srcChainId,
         dstChainId,
-        srcSafetyDeposit: parseUnits('0.001', 6),
-        dstSafetyDeposit: parseEther('0.001'),
+        srcSafetyDeposit: parseUnits('0.001', tezosTokens.xtz.decimals),
+        dstSafetyDeposit: parseUnits('0.001', ethereumTokens.eth.decimals),
         timeLocks: {
           srcWithdrawal: 0n, // no finality lock for test
           srcPublicWithdrawal: 120n, // 2m for private withdrawal

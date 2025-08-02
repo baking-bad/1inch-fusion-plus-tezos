@@ -1,37 +1,38 @@
-export interface TezosToken {
-  /**
-   * Token address on the Tezos network
-   */
-  readonly address: string;
-  /**
-   * Token type, e.g., FA2 or FA1.2
-   */
-  readonly type: 'FA2' | 'FA1.2';
-  /**
-   * Token symbol, e.g., "USDt", "tzBTC"
-   */
+export interface TezosNativeToken {
+  readonly type: 'native';
   readonly symbol: string;
-  /**
-   * Token decimals, e.g., 8 for tzBTC
-   */
   readonly decimals: number;
-  /**
-   * Optional token ID for FA2 tokens
-   */
-  readonly tokenId?: string;
+}
+
+export interface TezosFa12Token {
+  readonly type: 'fa1.2';
+  readonly address: string;
+  readonly symbol: string;
+  readonly decimals: number;
+}
+
+export interface TezosFa2Token {
+  readonly type: 'fa2';
+  readonly address: string;
+  readonly symbol: string;
+  readonly decimals: number;
+  readonly tokenId: string;
+}
+
+export type TezosFaToken = TezosFa12Token | TezosFa2Token;
+export type TezosToken = TezosNativeToken | TezosFaToken;
+
+export interface NativeEvmToken {
+  readonly type: 'native';
+  readonly symbol: string;
+  readonly decimals: number;
 }
 
 export interface Erc20Token {
-  /**
-   * Token address on the EVM network
-   */
+  readonly type: 'erc-20';
   readonly address: string;
-  /**
-   * Token symbol, e.g., "USDC", "DAI"
-   */
   readonly symbol: string;
-  /**
-   * Token decimals, e.g., 6 for USDC
-   */
   readonly decimals: number;
 }
+
+export type EvmToken = NativeEvmToken | Erc20Token;

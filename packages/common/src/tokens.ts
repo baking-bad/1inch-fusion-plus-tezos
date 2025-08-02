@@ -1,24 +1,35 @@
-import type { Erc20Token, TezosToken } from './models/index.js';
+import type { Erc20Token, EvmToken, NativeEvmToken, TezosFa2Token, TezosNativeToken, TezosToken } from './models/index.js';
 
-export const ethereumTokens = new Map<string, Erc20Token>(([
-  {
+export const ethereumTokens = {
+  eth: {
+    type: 'native',
+    symbol: 'ETH',
+    decimals: 18,
+  } as const satisfies NativeEvmToken,
+  usdc: {
+    type: 'erc-20',
     address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     symbol: 'USDC',
     decimals: 6,
-  },
-] satisfies Erc20Token[]).map(token => [token.symbol.toLowerCase(), token]));
+  } as const satisfies Erc20Token,
+} as const satisfies Record<string, EvmToken>;
 
-export const ethereumTokenDonors = new Map<string, string>([
-  ['native', '0xf977814e90da44bfa03b6295a0616a897441acec'],
-  ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', '0xd54F23BE482D9A58676590fCa79c8E43087f92fB'],
-]);
+export const ethereumTokenDonors = {
+  [ethereumTokens.eth.symbol.toLowerCase()]: '0xf977814e90da44bfa03b6295a0616a897441acec',
+  [ethereumTokens.usdc.symbol.toLowerCase()]: '0xd54F23BE482D9A58676590fCa79c8E43087f92fB',
+} as const;
 
-export const tezosTokens = new Map<string, TezosToken>(([
-  {
+export const tezosTokens = {
+  xtz: {
+    type: 'native',
+    symbol: 'XTZ',
+    decimals: 6,
+  } as const satisfies TezosNativeToken,
+  usdt: {
+    type: 'fa2',
     address: 'KT1V2ak1MfNd3w4oyKD64ehYU7K4CrpUcDGR',
-    type: 'FA2',
     symbol: 'USDT',
     tokenId: '0',
     decimals: 6,
-  },
-] satisfies TezosToken[]).map(token => [token.symbol.toLowerCase(), token]));
+  } as const satisfies TezosFa2Token,
+} as const satisfies Record<string, TezosToken>;

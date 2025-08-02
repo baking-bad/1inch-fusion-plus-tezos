@@ -1,14 +1,14 @@
-import { AbiCoder, Contract, Wallet, JsonRpcProvider, Signer, type TransactionResponse } from 'ethers';
+import { AbiCoder, Contract, Wallet, JsonRpcProvider, Signer, type TransactionResponse, parseEther, parseUnits, formatUnits } from 'ethers';
 
-import type { ChainId, Erc20Token } from '../models/index.js';
+import type { ChainId, Erc20Token, EvmToken } from '../models/index.js';
 import ERC20 from '../../../../contracts/evm/compiled/IERC20.sol/IERC20.json' with { type: 'json' };
 
 interface EvmChainAccountOptions {
   privateKeyOrSigner: string | Signer;
   rpcUrl: string;
   chainId: ChainId;
-  tokens: ReadonlyMap<string, Erc20Token>;
-  tokenDonors: ReadonlyMap<string, string>;
+  tokens: Record<string, EvmToken>;
+  tokenDonors: Record<string, string>;
 }
 
 const coder = AbiCoder.defaultAbiCoder();
@@ -18,8 +18,8 @@ export class EvmChainAccount {
   readonly provider: JsonRpcProvider;
   readonly signer: Signer;
 
-  protected readonly tokens: ReadonlyMap<string, Erc20Token>;
-  protected readonly tokenDonors: ReadonlyMap<string, string>;
+  protected readonly tokens: Readonly<Record<string, EvmToken>>;
+  protected readonly tokenDonors: Readonly<Record<string, string>>;
 
   constructor(options: EvmChainAccountOptions) {
     this.chainId = options.chainId;
@@ -36,7 +36,7 @@ export class EvmChainAccount {
   }
 
   async start() {
-    for (const donorAddress of this.tokenDonors.values()) {
+    for (const donorAddress of Object.values(this.tokenDonors)) {
       await this.provider.send('anvil_impersonateAccount', [donorAddress]);
     }
   }
@@ -48,107 +48,109 @@ export class EvmChainAccount {
     return this.signer.getAddress();
   }
 
-  getToken(tokenSymbol: string): Erc20Token | undefined {
-    return this.tokens.get(tokenSymbol.toLowerCase());
+  getToken(tokenSymbol: string): EvmToken | undefined {
+    return this.tokens[tokenSymbol.toLowerCase()];
   }
 
-  async getTokenBalance(tokenAddress: string): Promise<bigint> {
-    if (tokenAddress === 'native') {
-      return this.provider.getBalance(await this.getAddress());
-    }
-
-    const tokenContract = new Contract(tokenAddress.toString(), ERC20.abi, this.provider);
-
-    return tokenContract.balanceOf!(await this.getAddress());
-  }
-
-  async topUpFromDonor(amount: bigint): Promise<void>;
-  async topUpFromDonor(tokenAddress: string, amount: bigint): Promise<void>;
-  async topUpFromDonor(tokenAddressOrAmount: string | bigint, amountParam?: bigint): Promise<void> {
-    let tokenAddress: string;
-    let amount: bigint;
-    if (typeof tokenAddressOrAmount === 'bigint') {
-      tokenAddress = 'native';
-      amount = tokenAddressOrAmount;
+  async getTokenBalance(token: EvmToken, rawFormat: true): Promise<bigint>;
+  async getTokenBalance(token: EvmToken, rawFormat: false): Promise<string>;
+  async getTokenBalance(token: EvmToken, rawFormat: boolean): Promise<string | bigint> {
+    let rawBalance: bigint;
+    if (token.type === 'native') {
+      rawBalance = await this.provider.getBalance(await this.getAddress());
     }
     else {
-      tokenAddress = tokenAddressOrAmount;
-      amount = amountParam!;
+      const tokenContract = new Contract(token.address.toString(), ERC20.abi, this.provider);
+      rawBalance = await tokenContract.balanceOf!(await this.getAddress());
     }
 
-    const donorAddress = this.tokenDonors.get(tokenAddress);
+    return rawFormat ? rawBalance : formatUnits(rawBalance, token.decimals);
+  }
+
+  async topUpFromDonor(token: EvmToken, amount: number | string | bigint): Promise<TransactionResponse> {
+    const donorAddress = this.tokenDonors[token.symbol.toLowerCase()];
     if (!donorAddress)
-      throw new Error(`Donor address for ${tokenAddress} token is not specified`);
+      throw new Error(`Donor address for ${token.symbol} token is not specified`);
 
     const senderAddress = await this.getAddress();
-    const previousBalance = await this.getTokenBalance(tokenAddress);
-    console.log(senderAddress, `: Top up ${tokenAddress} token from donor ${donorAddress} with amount ${amount}...`);
 
+    console.log(senderAddress, ` : Top up ${token.symbol} token from donor ${donorAddress} with amount ${amount}...`);
     const donorSigner = await this.provider.getSigner(donorAddress);
-    const destinationAddress = await this.getAddress();
+    const rawAmount = this.getRawAmount(amount, token);
 
     let tx: TransactionResponse;
-    if (tokenAddress === 'native') {
+    if (token.type === 'native') {
       tx = await donorSigner.sendTransaction({
-        to: destinationAddress,
-        value: amount,
+        to: senderAddress,
+        value: rawAmount,
       });
     }
     else {
       tx = await donorSigner.sendTransaction({
-        to: tokenAddress.toString(),
-        data: '0xa9059cbb' + coder.encode(['address', 'uint256'], [destinationAddress, amount]).slice(2),
+        to: token.address.toString(),
+        data: '0xa9059cbb' + coder.encode(['address', 'uint256'], [senderAddress, rawAmount]).slice(2),
       });
     }
 
     await tx.wait();
 
-    const newBalance = await this.getTokenBalance(tokenAddress);
-    console.log(senderAddress, `: Top up completed: ${previousBalance} → ${newBalance}`, `tx: ${tx.hash}`);
+    console.log(senderAddress, ` : Top up completed. TxHash ${tx.hash}`);
+    return tx;
   }
 
-  async approveUnlimited(tokenAddress: string, spender: string): Promise<void> {
+  async approveUnlimited(token: Erc20Token, spender: string): Promise<TransactionResponse> {
     const senderAddress = await this.getAddress();
-    console.log(senderAddress, `: Approving unlimited allowance for ${tokenAddress} token to ${spender}...`);
-    const currentApprove = await this.getAllowance(tokenAddress, spender);
+
+    console.log(senderAddress, ` : Approving unlimited allowance for ${token.symbol} token to ${spender}...`);
+    const currentApprove = await this.getAllowance(token, spender);
 
     // for usdt like tokens
     if (currentApprove !== 0n) {
-      await this.approveToken(tokenAddress, spender, 0n);
+      await this.approveToken(token, spender, 0n);
     }
 
-    await this.approveToken(tokenAddress, spender, (1n << 256n) - 1n);
-    console.log(senderAddress, `: Unlimited allowance approved for ${tokenAddress} token to ${spender}`);
+    const tx = await this.approveToken(token, spender, (1n << 256n) - 1n);
+    console.log(senderAddress, ` : Unlimited allowance approved for ${token.symbol} token to ${spender}`);
+
+    return tx;
   }
 
-  async getAllowance(token: string, spender: string): Promise<bigint> {
-    const contract = new Contract(token.toString(), ERC20.abi, this.provider);
+  async getAllowance(token: Erc20Token, spender: string): Promise<bigint> {
+    const contract = new Contract(token.address, ERC20.abi, this.provider);
 
-    return contract.allowance!(await this.getAddress(), spender.toString());
+    return contract.allowance!(await this.getAddress(), spender);
   }
 
-  async transfer(dest: string, amount: bigint): Promise<void> {
-    await this.signer.sendTransaction({
-      to: dest,
-      value: amount,
-    });
-  }
+  async transferToken(token: EvmToken, dest: string, amount: number | string | bigint): Promise<TransactionResponse> {
+    const rawAmount = parseEther(amount.toString());
+    if (token.type === 'native') {
+      return await this.signer.sendTransaction({
+        to: dest,
+        value: rawAmount,
+      });
+    }
 
-  async transferToken(token: string, dest: string, amount: bigint): Promise<void> {
     const tx = await this.signer.sendTransaction({
-      to: token.toString(),
-      data: '0xa9059cbb' + coder.encode(['address', 'uint256'], [dest.toString(), amount]).slice(2),
+      to: token.address,
+      data: '0xa9059cbb' + coder.encode(['address', 'uint256'], [dest, rawAmount]).slice(2),
     });
 
     await tx.wait();
+    return tx;
   }
 
-  async approveToken(token: string, spender: string, amount: bigint): Promise<void> {
+  async approveToken(token: Erc20Token, spender: string, amount: number | string | bigint): Promise<TransactionResponse> {
+    const rawAmount = this.getRawAmount(amount, token);
     const tx = await this.signer.sendTransaction({
-      to: token.toString(),
-      data: '0x095ea7b3' + coder.encode(['address', 'uint256'], [spender.toString(), amount]).slice(2),
+      to: token.address,
+      data: '0x095ea7b3' + coder.encode(['address', 'uint256'], [spender, rawAmount]).slice(2),
     });
 
     await tx.wait();
+    return tx;
+  }
+
+  private getRawAmount(amount: number | string | bigint, token: EvmToken): bigint {
+    return typeof amount === 'bigint' ? amount : parseUnits(amount.toString(), token.decimals);
   }
 }
