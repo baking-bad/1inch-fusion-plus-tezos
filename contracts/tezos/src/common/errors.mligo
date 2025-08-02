@@ -5,3 +5,4 @@
 [@inline] let invalid_time = "INVALID_TIME"
 [@inline] let invalid_tez_amount_in_transaction = "INVALID_TEZ_AMOUNT_IN_TRANSACTION"
 [@inline] let invalid_token_type = "INVALID_TOKEN_TYPE"
+[@inline] let invalid_order_signature = "INVALID_ORDER_SIGNATURE"

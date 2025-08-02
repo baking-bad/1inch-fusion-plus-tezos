@@ -52,5 +52,9 @@ let assert_tez_in_transaction
     Errors.invalid_tez_amount_in_transaction
 
 [@inline]
-let hash_order (order : Types.order) : bytes =
-  Crypto.keccak (Bytes.pack order)
+let assert_valid_order
+    (order : Types.order)
+    (signature : signature)
+    : unit =
+  let packed_order = Bytes.pack order in
+  Assert.Error.assert (Crypto.check order.maker signature packed_order) Errors.invalid_order_signature

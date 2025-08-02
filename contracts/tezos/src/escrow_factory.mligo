@@ -12,7 +12,9 @@ type storage = {
 }
 
 type deploy_src = {
-  immutables : Types.factory_immutables;
+  order: Types.order;
+  signature: signature;
+  partial_immutables : Types.partial_immutables;
 }
 
 type deploy_dst = {
@@ -33,7 +35,8 @@ let map_timelocks
   }
 
 let map_immutables
-    (immutables : Types.factory_immutables) : Types.immutables =
+    (immutables : Types.factory_immutables) 
+    : Types.immutables =
   {
     order_hash = immutables.order_hash;
     hashlock = immutables.hashlock;
@@ -45,19 +48,39 @@ let map_immutables
     timelocks = map_timelocks immutables.timelocks;
   }
 
+let key_to_address (k: key): address =
+  let kh: key_hash = Crypto.hash_key k in
+  Tezos.address (Tezos.implicit_account kh)
+
+let map_partial_immutables
+    (partial_immutables : Types.partial_immutables)
+    (order : Types.order)
+    : Types.immutables =
+  {
+    maker = key_to_address order.maker;
+    token = order.token;
+    amount = order.amount;
+    order_hash = order.order_hash;
+    hashlock = order.hashlock;
+    taker = partial_immutables.taker;
+    safety_deposit = partial_immutables.safety_deposit;
+    timelocks = map_timelocks partial_immutables.timelocks;
+  }
+
 [@entry]
 let deploy_src 
-    ({immutables} : deploy_src) 
+    ({order; signature; partial_immutables = immutables} : deploy_src) 
     (storage : storage) 
     : operation list * storage =
-  // TODO: add signature validation
+  let () = Validation.assert_valid_order order signature in
   let () = Validation.assert_tez_in_transaction immutables.safety_deposit in
+  let filled_immutables = map_partial_immutables immutables order in
   let (origination_op, escrow_contract) = 
-    EscrowSrc.originate_escrow_src immutables.safety_deposit { immutables = map_immutables immutables } in
+    EscrowSrc.originate_escrow_src immutables.safety_deposit { immutables = filled_immutables } in
   let ops = [
     origination_op;
-    match immutables.token with
-      | FA fa_token -> Tokens.transfer_fa fa_token immutables.maker escrow_contract immutables.amount
+    match filled_immutables.token with
+      | FA fa_token -> Tokens.transfer_fa fa_token filled_immutables.maker escrow_contract filled_immutables.amount
       | TEZ -> failwith Errors.invalid_token_type
   ] in
   (ops, storage)
