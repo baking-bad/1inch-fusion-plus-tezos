@@ -35,7 +35,10 @@
                  (int %dst_public_withdrawal)
                  (int %dst_cancellation))))) ;
   storage
-    (pair (set %hashlocks bytes) (set %allowed_operators address) (address %admin)) ;
+    (pair (set %src_hashlocks bytes)
+          (set %dst_hashlocks bytes)
+          (set %allowed_resolvers address)
+          (address %admin)) ;
   code { LAMBDA
            (pair int int int int int int int)
            (pair timestamp timestamp timestamp timestamp timestamp timestamp timestamp)
@@ -72,7 +75,20 @@
          SWAP ;
          UNPAIR ;
          IF_LEFT
-           { DUP ;
+           { PUSH string "NOT_ALLOWED_RESOLVER" ;
+             DUP 3 ;
+             GET 5 ;
+             SENDER ;
+             MEM ;
+             IF { DROP } { FAILWITH } ;
+             DUP 2 ;
+             GET 3 ;
+             DUP 2 ;
+             GET 3 ;
+             MEM ;
+             NOT ;
+             IF {} { PUSH string "ALREADY_USED_HASHLOCK" ; FAILWITH } ;
+             DUP ;
              GET 9 ;
              IF_LEFT
                { DROP ; PUSH mutez 0 }
@@ -380,7 +396,7 @@
                { NIL operation ;
                  DUP 5 ;
                  GET 11 ;
-                 DIG 5 ;
+                 DUP 6 ;
                  GET 7 ;
                  DIG 3 ;
                  IF_LEFT
@@ -409,8 +425,24 @@
                      CONS ;
                      TRANSFER_TOKENS } ;
                  CONS }
-               { DIG 2 ; DIG 3 ; DROP 3 ; NIL operation } }
+               { DIG 2 ; DROP 2 ; NIL operation } ;
+             SWAP ;
+             CONS ;
+             DUP 3 ;
+             DIG 3 ;
+             GET 3 ;
+             PUSH bool True ;
+             DIG 4 ;
+             GET 3 ;
+             UPDATE ;
+             UPDATE 3 }
            { UNPAIR 3 ;
+             PUSH string "NOT_ALLOWED_RESOLVER" ;
+             DUP 5 ;
+             GET 5 ;
+             SENDER ;
+             MEM ;
+             IF { DROP } { FAILWITH } ;
              DUP ;
              PACK ;
              PUSH string "INVALID_ORDER_SIGNATURE" ;
@@ -427,6 +459,13 @@
              COMPARE ;
              EQ ;
              IF { DROP } { FAILWITH } ;
+             DUP 3 ;
+             CAR ;
+             DUP 2 ;
+             GET 8 ;
+             MEM ;
+             NOT ;
+             IF {} { PUSH string "ALREADY_USED_HASHLOCK" ; FAILWITH } ;
              DUP 2 ;
              GET 4 ;
              DIG 4 ;
@@ -447,11 +486,11 @@
              ADDRESS ;
              DUP 7 ;
              GET 8 ;
-             DIG 7 ;
+             DUP 8 ;
              GET 7 ;
              PAIR 8 ;
              DUP ;
-             DIG 2 ;
+             DIG 3 ;
              GET 3 ;
              NONE key_hash ;
              CREATE_CONTRACT
@@ -910,8 +949,17 @@
                      CONS ;
                      TRANSFER_TOKENS } }
                { DIG 3 ; DIG 4 ; DROP 3 ; PUSH string "INVALID_TOKEN_TYPE" ; FAILWITH } ;
-             CONS } ;
+             CONS ;
+             SWAP ;
+             CONS ;
+             DUP 3 ;
+             DIG 3 ;
+             CAR ;
+             PUSH bool True ;
+             DIG 4 ;
+             GET 8 ;
+             UPDATE ;
+             UPDATE 1 } ;
          SWAP ;
-         CONS ;
          PAIR } }
 

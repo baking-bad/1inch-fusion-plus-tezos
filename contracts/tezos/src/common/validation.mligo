@@ -58,3 +58,16 @@ let assert_valid_order
     : unit =
   let packed_order = Bytes.pack order in
   Assert.Error.assert (Crypto.check order.maker signature packed_order) Errors.invalid_order_signature
+
+[@inline]
+let assert_sender_allowed_resolver
+    (allowed_resolvers : address set)
+    : unit =
+  Assert.Error.assert (Set.mem (Tezos.get_sender ()) allowed_resolvers) Errors.not_allowed_resolver
+
+[@inline]
+let assert_not_used_hashlock
+    (hashlock : bytes)
+    (hashlocks : bytes set)
+    : unit =
+  Assert.Error.assert (not (Set.mem hashlock hashlocks)) Errors.already_used_hashlock
