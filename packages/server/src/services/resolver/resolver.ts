@@ -93,9 +93,9 @@ export class Resolver {
       const dstImmutables = this.mapSdkImmutablesToImmutables(sdkDstImmutables);
       const tezosEscrowDeployTxResult = await this.tezosResolverChainService.deployDst(dstImmutables);
 
-      console.log('Src Immutables:', srcImmutables);
+      console.debug('Src Immutables:', srcImmutables);
       console.dir(sdkSrcImmutables, { depth: null });
-      console.log('Dst Immutables:', dstImmutables);
+      console.debug('Dst Immutables:', dstImmutables);
       console.dir(sdkDstImmutables, { depth: null });
 
       console.log('Tezos escrow deployed:', tezosEscrowDeployTxResult);
@@ -127,8 +127,8 @@ export class Resolver {
       };
     }
     else if (order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
-      console.log('Starting swap from Tezos to Ethereum...');
-      console.log('Order:');
+      console.debug('Starting swap from Tezos to Ethereum...');
+      console.debug('Order:');
       console.dir(order, { depth: null });
 
       throw new Error('Tezos to Ethereum swap is not supported yet');
@@ -148,9 +148,9 @@ export class Resolver {
 
       const sdkSrcImmutables = this.mapImmutablesToSdkImmutables(orderContext.srcImmutables);
       const sdkDstImmutables = this.mapImmutablesToSdkImmutables(orderContext.dstImmutables);
-      console.log('Src Immutables:', orderContext.srcImmutables);
+      console.debug('Src Immutables:', orderContext.srcImmutables);
       console.dir(sdkSrcImmutables, { depth: null });
-      console.log('Dst Immutables:', orderContext.dstImmutables);
+      console.debug('Dst Immutables:', orderContext.dstImmutables);
       console.dir(sdkDstImmutables, { depth: null });
 
       const srcWithdrawalResult = await this.evmResolverChainService.withdraw(
