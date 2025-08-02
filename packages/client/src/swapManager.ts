@@ -13,7 +13,8 @@ import {
   type CrossChainOrder,
   type ChainId,
   tezosChainHelpers,
-  SignedCrossChainOrder
+  SignedCrossChainOrder,
+  mappers
 } from '@baking-bad/1inch-fusion-plus-common';
 
 import type { ResolverService } from './resolverService.js';
@@ -180,7 +181,7 @@ export class SwapManager {
         allowMultipleFills: false,
       },
     };
-    const sdkOrder = this.createSdkCrossChainOrder(order);
+    const sdkOrder = mappers.sdk.mapOrderToSdkCrossChainOrder(order);
     const signature = await this.signOrderFromEvm(sdkOrder);
     const orderHash = sdkOrder.getOrderHash(srcChainId);
 
@@ -254,7 +255,7 @@ export class SwapManager {
         allowMultipleFills: false,
       },
     };
-    const sdkOrder = this.createSdkCrossChainOrder(order);
+    const sdkOrder = mappers.sdk.mapOrderToSdkCrossChainOrder(order);
     const signature = await this.signOrderFromEvm(sdkOrder);
     const orderHash = sdkOrder.getOrderHash(TezosGhostnetSdkChainId);
 
@@ -270,55 +271,6 @@ export class SwapManager {
 
   protected createSecret(): string {
     return uint8ArrayToHex(randomBytes(32));
-  }
-
-  private createSdkCrossChainOrder(order: CrossChainOrder): Sdk.CrossChainOrder {
-    return Sdk.CrossChainOrder.new(
-      new Sdk.Address(order.escrowFactory),
-      {
-        salt: order.orderInfo.salt,
-        maker: order.escrowParams.srcChainId === ChainIds.Ethereum
-          ? new Sdk.Address(order.orderInfo.maker)
-          : new Sdk.Address(tezosChainHelpers.mapTezosAddressToEvmAddress(order.orderInfo.maker)),
-        makingAmount: order.orderInfo.makingAmount,
-        takingAmount: order.orderInfo.takingAmount,
-        makerAsset: order.escrowParams.srcChainId === ChainIds.Ethereum
-          ? new Sdk.Address(order.orderInfo.makerAsset.address)
-          : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.makerAsset.address, order.orderInfo.makerAsset.tokenId)),
-        takerAsset: order.escrowParams.dstChainId === ChainIds.Ethereum
-          ? new Sdk.Address(order.orderInfo.takerAsset.address)
-          : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
-      },
-      {
-        hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
-        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : TezosGhostnetSdkChainId,
-        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : TezosGhostnetSdkChainId,
-        srcSafetyDeposit: order.escrowParams.srcSafetyDeposit,
-        dstSafetyDeposit: order.escrowParams.dstSafetyDeposit,
-        timeLocks: Sdk.TimeLocks.new({
-          srcWithdrawal: order.escrowParams.timeLocks.srcWithdrawal,
-          srcPublicWithdrawal: order.escrowParams.timeLocks.srcPublicWithdrawal,
-          srcCancellation: order.escrowParams.timeLocks.srcCancellation,
-          srcPublicCancellation: order.escrowParams.timeLocks.srcPublicCancellation,
-          dstWithdrawal: order.escrowParams.timeLocks.dstWithdrawal,
-          dstPublicWithdrawal: order.escrowParams.timeLocks.dstPublicWithdrawal,
-          dstCancellation: order.escrowParams.timeLocks.dstCancellation,
-        }),
-      },
-      {
-        auction: new Sdk.AuctionDetails(order.details.auction),
-        whitelist: order.details.whitelist.map(item => ({
-          address: new Sdk.Address(item.address),
-          allowFrom: item.allowFrom,
-        })),
-        resolvingStartTime: order.details.resolvingStartTime,
-      },
-      {
-        nonce: order.extra.nonce,
-        allowPartialFills: order.extra.allowPartialFills,
-        allowMultipleFills: order.extra.allowMultipleFills,
-      }
-    );
   }
 
   private signOrderFromEvm(order: Sdk.CrossChainOrder): Promise<string> {
