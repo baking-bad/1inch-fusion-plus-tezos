@@ -26,3 +26,14 @@ type immutables = {
   safety_deposit : tez;
   timelocks : timelocks;
 }
+
+type order = {
+  salt: nat;
+  maker: bytes;
+  receiver: bytes;
+  maker_asset: bytes;
+  taker_asset: bytes;
+  making_amount: nat;
+  taking_amount: nat;
+  maker_traits: nat;
+}

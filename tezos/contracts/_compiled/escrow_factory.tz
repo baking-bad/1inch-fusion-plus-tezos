@@ -31,7 +31,8 @@
               (timestamp %dst_withdrawal)
               (timestamp %dst_public_withdrawal)
               (timestamp %dst_cancellation)))) ;
-  storage unit ;
+  storage
+    (pair (set %hashlocks bytes) (set %allowed_operators address) (address %admin)) ;
   code { UNPAIR ;
          IF_LEFT
            { DUP ;

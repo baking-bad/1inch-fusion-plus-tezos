@@ -5,7 +5,11 @@
 #import "escrow_src.mligo" "EscrowSrc"
 #import "escrow_dst.mligo" "EscrowDst"
 
-type storage = unit
+type storage = {
+  hashlocks : bytes set; // To not allow reusing hashlocks
+  allowed_operators : address set;
+  admin: address;
+}
 
 type deploy_src = {
   immutables : Types.immutables;
@@ -34,7 +38,6 @@ let deploy_dst
     ({immutables} : deploy_src) 
     (storage : storage) 
     : operation list * storage =
-  // TODO: add signature validation
   let tez_amount = immutables.safety_deposit + (match immutables.token with
     | FA _ -> 0mutez
     | TEZ -> immutables.amount * 1mutez) in

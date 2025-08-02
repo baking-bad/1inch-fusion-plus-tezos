@@ -50,3 +50,7 @@ let assert_tez_in_transaction
   Assert.Error.assert 
     (Tezos.get_amount () = required_amount) 
     Errors.invalid_tez_amount_in_transaction
+
+[@inline]
+let hash_order (order : Types.order) : bytes =
+  Crypto.keccak (Bytes.pack order)
