@@ -240,7 +240,7 @@ export class App {
 
     console.log(`Canceling swap for order #${orderIndex + 1} (${order.order.orderHash})...`);
 
-    const result = await this.swapManager.withdrawOrder(order);
+    const result = await this.swapManager.cancelOrder(order);
     console.log('Swap canceled successfully:', result);
   };
 
