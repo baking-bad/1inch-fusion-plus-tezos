@@ -1,4 +1,4 @@
-import { textUtils } from './utils/index.js';
+import { utils } from './utils/index.js';
 
 export class RemoteServiceResponseError extends Error {
   constructor(status: Response['status'], content: string) {
@@ -14,11 +14,11 @@ export abstract class RemoteService {
   readonly baseUrl: string;
 
   constructor(baseUrl: string) {
-    this.baseUrl = textUtils.trimSlashes(baseUrl);
+    this.baseUrl = utils.textUtils.trimSlashes(baseUrl);
   }
 
   protected getUrl(uri: string) {
-    return new URL(this.baseUrl + '/' + textUtils.trimSlashes(uri));
+    return new URL(this.baseUrl + '/' + utils.textUtils.trimSlashes(uri));
   }
 
   protected async getRequestInit(requestInit: RequestInit = {}) {

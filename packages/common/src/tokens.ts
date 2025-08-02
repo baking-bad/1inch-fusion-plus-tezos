@@ -1,4 +1,4 @@
-import type { Erc20Token, EvmToken, NativeEvmToken, TezosFa2Token, TezosNativeToken, TezosToken } from './models/index.js';
+import type { Erc20Token, EvmToken, NativeEvmToken, TezosFa12Token, TezosNativeToken, TezosToken } from './models/index.js';
 
 export const ethereumTokens = {
   eth: {
@@ -26,10 +26,9 @@ export const tezosTokens = {
     decimals: 6,
   } as const satisfies TezosNativeToken,
   usdt: {
-    type: 'fa2',
-    address: 'KT1V2ak1MfNd3w4oyKD64ehYU7K4CrpUcDGR',
+    type: 'fa1.2',
+    address: 'KT1VLCnUsB5vMuoaemycwza1iKwK3BMHr16C',
     symbol: 'USDT',
-    tokenId: '0',
     decimals: 6,
-  } as const satisfies TezosFa2Token,
+  } as const satisfies TezosFa12Token,
 } as const satisfies Record<string, TezosToken>;

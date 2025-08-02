@@ -20,6 +20,7 @@ interface TezosChainConfig {
   readonly rpcUrl: string;
   readonly escrowFactoryAddress: string;
   readonly resolverAddress: string;
+  readonly tzktApiBaseUrl: string;
 }
 
 interface ResolverServiceConfig {
@@ -75,11 +76,14 @@ const createTezosChainConfig = (): TezosChainConfig => {
   if (!resolverAddress)
     throw new Error('The TEZOS_CHAIN__RESOLVER_ADDRESS is not specified');
 
+  const tzktApiBaseUrl = 'https://api.ghostnet.tzkt.io/';
+
   return {
     userPrivateKey,
     rpcUrl,
     escrowFactoryAddress,
     resolverAddress,
+    tzktApiBaseUrl,
   };
 };
 
