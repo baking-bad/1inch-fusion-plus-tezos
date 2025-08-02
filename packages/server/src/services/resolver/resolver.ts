@@ -185,11 +185,9 @@ export class Resolver {
       console.log('Finalizing swap from Ethereum to Tezos...');
 
       const sdkSrcImmutables = mappers.sdk.mapImmutablesToSdkImmutables(orderContext.srcImmutables);
-      const sdkDstImmutables = mappers.sdk.mapImmutablesToSdkImmutables(orderContext.dstImmutables);
       console.debug('Src Immutables:', orderContext.srcImmutables);
       console.dir(sdkSrcImmutables, { depth: null });
       console.debug('Dst Immutables:', orderContext.dstImmutables);
-      console.dir(sdkDstImmutables, { depth: null });
 
       const dstWithdrawalResult = await this.tezosResolverChainService.withdraw(
         orderContext.dstEscrowAddress,
