@@ -23,6 +23,7 @@ export class App {
       [['q', 'exit'], this.exitCommandHandler, 'Exiting the program'],
       [['t', 'topup'], this.topUpCommandHandler, 'Top up EVM account from donor'],
       [['b', 'balances'], this.getTokenBalancesHandler, 'Get token balances for the specified chain and address'],
+      [['ba', 'balances-all'], this.getAllTokenBalancesHandler, 'Get token balances for all chains and participating addresses'],
       [['s', 'swap'], this.swapCommandHandler, 'Swap tokens'],
       [['w', 'withdraw'], this.completeSwapCommandHandler, 'Finalize swap'],
       [['o', 'orders'], this.getOrdersCommandHandler, 'Get current orders'],
@@ -291,7 +292,7 @@ export class App {
   private getTokenBalancesHandler = async (inputCommand: string, ...args: string[]) => {
     const [chainName, addressOrName] = args;
     if (args.length < 2) {
-      console.error(`Usage: ${inputCommand} <chain> <address>|me|resolver`);
+      console.error(`Usage: ${inputCommand} [<chain> <address>|me|resolver]`);
       return;
     }
 
@@ -324,6 +325,29 @@ export class App {
     console.log(`Balances for ${address} on ${chainName}:`);
     for (const [tokenSymbol, balance] of Object.entries(balances)) {
       console.log(`  ${tokenSymbol.toUpperCase()}:`, balance);
+    }
+  };
+
+  private getAllTokenBalancesHandler = async (_inputCommand: string) => {
+    const addresses = [
+      ['me', await this.evmAccount.getAddress()],
+      ['me', await this.tezosAccount.getAddress()],
+      ['resolver', config.evmChain.resolverAddress],
+      ['resolver', config.tezosChain.resolverAddress],
+    ] as const;
+
+    console.log('Balances:');
+    for (const [alias, address] of addresses) {
+      const isEvmChain = address.startsWith('0x') || address.startsWith('0X');
+      console.log(`${address} [${alias}]:`);
+      console.log('  Chain: ', isEvmChain ? 'Ethereum' : 'Tezos');
+      const tokenBalances = await (isEvmChain
+        ? this.evmBalanceProvider.getBalances(address, Object.values(ethereumTokens), false)
+        : this.tezosBalanceProvider.getBalances(address, Object.values(tezosTokens), false)
+      );
+      for (const [tokenSymbol, balance] of Object.entries(tokenBalances)) {
+        console.log(`    ${tokenSymbol.toUpperCase()}:`, balance);
+      }
     }
   };
 
