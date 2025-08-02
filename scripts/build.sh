@@ -11,13 +11,13 @@ OVERRIDE_ENV=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --override-env)
+        -o)
             OVERRIDE_ENV=true
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 [--override-env]"
-            echo "  --override-env    Override existing .env files"
+            echo "Usage: $0 [-o]"
+            echo "  -o    Override existing .env files"
             exit 0
             ;;
         *)
