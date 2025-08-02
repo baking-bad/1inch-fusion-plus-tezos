@@ -15,11 +15,16 @@ export interface ResolverOptions {
   tezosChainAccount: TezosChainAccount;
 }
 
-interface SwapResult {
+interface StartSwapResult {
   srcEscrowTx: string;
   srcEscrowAddress: string;
   dstEscrowTx: string;
   dstEscrowAddress: string;
+}
+
+interface FinalizeSwapResult {
+  srcWithdrawalTx: string;
+  dstWithdrawalTx: string;
 }
 
 export class Resolver {
@@ -43,7 +48,7 @@ export class Resolver {
     return true;
   }
 
-  async startSwap(order: SignedCrossChainOrder): Promise<SwapResult> {
+  async startSwap(order: SignedCrossChainOrder): Promise<StartSwapResult> {
     if (!this.canSwap(order)) {
       throw new Error('Cannot swap: conditions not met');
     }
@@ -77,15 +82,21 @@ export class Resolver {
       console.log('Ethereum escrow deployed:', ethereumEscrowDeployTxResult);
 
       const srcEscrowEvent = await this.evmEscrowFactory.getSrcDeployEvent(ethereumEscrowDeployTxResult.blockHash);
-      const srcImmutables = this.mapSdkImmutablesToImmutables(srcEscrowEvent[0]);
+      const sdkSrcImmutables = srcEscrowEvent[0];
+      const srcImmutables = this.mapSdkImmutablesToImmutables(sdkSrcImmutables);
 
       const tezosResolverOwnerAddressEvmStyle = tezosChainHelpers.mapTezosAddressToEvmAddress(tezosResolverOwnerAddress);
       console.log('Tezos resolver owner address (EVM style):', tezosResolverOwnerAddress, ' -> ', tezosResolverOwnerAddressEvmStyle);
-      const sdkDstImmutables = srcEscrowEvent[0]
+      const sdkDstImmutables = sdkSrcImmutables
         .withComplement(srcEscrowEvent[1])
         .withTaker(new Sdk.Address(tezosResolverOwnerAddressEvmStyle));
       const dstImmutables = this.mapSdkImmutablesToImmutables(sdkDstImmutables);
       const tezosEscrowDeployTxResult = await this.tezosResolverChainService.deployDst(dstImmutables);
+
+      console.log('Src Immutables:', srcImmutables);
+      console.dir(sdkSrcImmutables, { depth: null });
+      console.log('Dst Immutables:', dstImmutables);
+      console.dir(sdkDstImmutables, { depth: null });
 
       console.log('Tezos escrow deployed:', tezosEscrowDeployTxResult);
 
@@ -122,7 +133,39 @@ export class Resolver {
     throw new Error(`Unsupported chain combination: ${order.order.escrowParams.srcChainId} to ${order.order.escrowParams.dstChainId}`);
   }
 
-  async finalizeSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
+  async finalizeSwap(orderHash: SignedCrossChainOrder['orderHash'], secret: string): Promise<FinalizeSwapResult> {
+    const orderContext = this.orders.get(orderHash);
+    if (!orderContext) {
+      throw new Error(`Order not found: ${orderHash}`);
+    }
+
+    if (orderContext.order.order.escrowParams.srcChainId === ChainIds.Ethereum && orderContext.order.order.escrowParams.dstChainId === ChainIds.TezosGhostnet) {
+      console.log('Finalizing swap from Ethereum to Tezos...');
+
+      const sdkSrcImmutables = this.mapImmutablesToSdkImmutables(orderContext.srcImmutables);
+      const sdkDstImmutables = this.mapImmutablesToSdkImmutables(orderContext.dstImmutables);
+      console.log('Src Immutables:', orderContext.srcImmutables);
+      console.dir(sdkSrcImmutables, { depth: null });
+      console.log('Dst Immutables:', orderContext.dstImmutables);
+      console.dir(sdkDstImmutables, { depth: null });
+
+      const srcWithdrawalResult = await this.evmResolverChainService.withdraw(
+        orderContext.srcEscrowAddress,
+        secret,
+        sdkSrcImmutables
+      );
+      console.log('Ethereum withdrawal completed:', srcWithdrawalResult);
+
+      return {
+        srcWithdrawalTx: srcWithdrawalResult.txHash,
+        dstWithdrawalTx: 'TODO: Tezos withdrawal',
+      };
+    }
+    else if (orderContext.order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && orderContext.order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
+      throw new Error('Tezos to Ethereum swap is not supported yet');
+    }
+
+    throw new Error(`Unsupported chain combination: ${orderContext.order.order.escrowParams.srcChainId} to ${orderContext.order.order.escrowParams.dstChainId}`);
   }
 
   async cancelSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
@@ -192,12 +235,13 @@ export class Resolver {
         dstWithdrawal: (immutables.timeLocks as any)._dstWithdrawal,
         dstPublicWithdrawal: (immutables.timeLocks as any)._dstPublicWithdrawal,
         dstCancellation: (immutables.timeLocks as any)._dstCancellation,
+        deployedAt: (immutables.timeLocks as any)._deployedAt,
       },
     };
   }
 
   protected mapImmutablesToSdkImmutables(immutables: Immutables): Sdk.Immutables {
-    return Sdk.Immutables.new({
+    let sdkImmutables = Sdk.Immutables.new({
       orderHash: immutables.orderHash,
       hashLock: Sdk.HashLock.fromString(immutables.hashLock),
       maker: new Sdk.Address(immutables.maker),
@@ -215,5 +259,11 @@ export class Resolver {
         dstCancellation: immutables.timeLocks.dstCancellation,
       }),
     });
+
+    if (immutables.timeLocks.deployedAt !== undefined) {
+      sdkImmutables = sdkImmutables.withDeployedAt(immutables.timeLocks.deployedAt);
+    }
+
+    return sdkImmutables;
   }
 }

@@ -57,20 +57,20 @@ export class EvmResolverChainService {
   }
 
   public withdraw(
-    escrow: Sdk.Address,
+    escrow: string,
     secret: string,
     immutables: Sdk.Immutables
   ) {
     return this.send({
       to: this.resolverContractAddress,
-      data: this.iface.encodeFunctionData('withdraw', [escrow.toString(), secret, immutables.build()]),
+      data: this.iface.encodeFunctionData('withdraw', [escrow, secret, immutables.build()]),
     });
   }
 
-  public cancel(escrow: Sdk.Address, immutables: Sdk.Immutables) {
+  public cancel(escrow: string, immutables: Sdk.Immutables) {
     return this.send({
       to: this.resolverContractAddress,
-      data: this.iface.encodeFunctionData('cancel', [escrow.toString(), immutables.build()]),
+      data: this.iface.encodeFunctionData('cancel', [escrow, immutables.build()]),
     });
   }
 

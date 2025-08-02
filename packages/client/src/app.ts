@@ -2,7 +2,7 @@ import readline, { Interface as ReadlineInterface } from 'node:readline';
 
 import { parseUnits, formatUnits, parseEther } from 'ethers';
 
-import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId, mappers } from '@baking-bad/1inch-fusion-plus-common';
+import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId } from '@baking-bad/1inch-fusion-plus-common';
 
 import config from './config.js';
 import { SwapManager } from './swapManager.js';
@@ -24,6 +24,9 @@ export class App {
       [['t', 'topup'], this.topUpCommandHandler, 'Top up EVM account from donor'],
       [['b', 'balance'], this.getTokenBalanceHandler, 'Get token balance'],
       [['s', 'swap'], this.swapCommandHandler, 'Swap tokens'],
+      [['w', 'f', 'withdraw', 'finalize-swap'], this.completeSwapCommandHandler, 'Finalize swap'],
+      [['o', 'orders'], this.getOrdersCommandHandler, 'Get current orders'],
+      [['od', 'order-details'], this.getOrderDetailsCommandHandler, 'Get details of a specific order'],
     ];
 
     this.rl = readline.createInterface({
@@ -185,6 +188,72 @@ export class App {
     console.log('Sending order to resolver service...');
     const result = await this.swapManager.sendOrder(order);
     console.log('Order sent successfully:', result);
+  };
+
+  private completeSwapCommandHandler = async (inputCommand: string, ...args: string[]) => {
+    if (args.length < 1) {
+      console.error(`Usage: ${inputCommand} <orderIndex>`);
+      return;
+    }
+
+    const rawOrderIndex = args[0];
+    const orderIndex = Number(rawOrderIndex) - 1;
+    if (!utils.validation.isNonNegativeNumber(orderIndex)) {
+      console.error('Invalid order index:', rawOrderIndex);
+      return;
+    }
+
+    const order = this.swapManager.orders[orderIndex];
+    if (!order) {
+      console.error(`Order with index ${orderIndex} not found.`);
+      return;
+    }
+
+    console.log(`Finalizing swap for order #${orderIndex + 1} (${order.order.orderHash})...`);
+
+    const result = await this.swapManager.withdrawOrder(order);
+    console.log('Swap finalized successfully:', result);
+  };
+
+  private getOrdersCommandHandler = async (inputCommand: string, ...args: string[]) => {
+    if (args.length > 0) {
+      console.error(`Usage: ${inputCommand}`);
+      return;
+    }
+
+    const orders = this.swapManager.orders;
+    if (!orders.length) {
+      console.log('No orders found.');
+      return;
+    }
+
+    console.log('Current orders:');
+    orders.forEach((order, index) => {
+      console.log(`  #${index + 1}:`, order.order.orderHash);
+    });
+  };
+
+  private getOrderDetailsCommandHandler = async (inputCommand: string, ...args: string[]) => {
+    if (args.length !== 1) {
+      console.error(`Usage: ${inputCommand} <orderIndex>`);
+      return;
+    }
+
+    const rawOrderIndex = args[0];
+    const orderIndex = Number(rawOrderIndex) - 1;
+    if (!utils.validation.isNonNegativeNumber(orderIndex)) {
+      console.error('Invalid order index:', rawOrderIndex);
+      return;
+    }
+
+    const order = this.swapManager.orders[orderIndex];
+    if (!order) {
+      console.error(`Order with index ${orderIndex} not found.`);
+      return;
+    }
+
+    console.dir('Order details:');
+    console.dir(order, { depth: null });
   };
 
   private topUpCommandHandler = async (inputCommand: string, ...args: string[]) => {

@@ -25,7 +25,15 @@ interface SwapManagerOptions {
   resolverService: ResolverService;
 }
 
+interface Order {
+  order: SignedCrossChainOrder;
+  secret: string;
+  status: 'created' | 'sent' | 'withdrawn' | 'cancelled' | 'failed';
+}
+
 export class SwapManager {
+  private readonly _orders: Order[] = [];
+
   private readonly evmChainAccount: EvmChainAccount;
   private readonly tezosChainAccount: TezosChainAccount;
   private readonly resolverService: ResolverService;
@@ -36,7 +44,14 @@ export class SwapManager {
     this.resolverService = options.resolverService;
   }
 
-  async createOrder(srcAmount: number, srcChainId: ChainId, srcTokenSymbol: string, dstAmount: number, dstChainId: ChainId, dstTokenSymbol: string): Promise<SignedCrossChainOrder> {
+  get orders(): readonly Order[] {
+    return this._orders;
+  }
+
+  async createOrder(srcAmount: number, srcChainId: ChainId, srcTokenSymbol: string, dstAmount: number, dstChainId: ChainId, dstTokenSymbol: string): Promise<Order> {
+    let crossChainOrder: SignedCrossChainOrder;
+    let secret: string;
+
     if (srcChainId !== ChainIds.Ethereum)
       throw new Error(`Unsupported source chain ID: ${srcChainId}`);
     if (dstChainId !== ChainIds.TezosGhostnet)
@@ -53,7 +68,7 @@ export class SwapManager {
         throw new Error(`Destination token ${dstTokenSymbol} not found`);
       }
 
-      return this.createOrderFromEvm(srcAmount, srcToken, dstAmount, dstToken);
+      [crossChainOrder, secret] = await this.createCrossChainOrderFromEvm(srcAmount, srcToken, dstAmount, dstToken);
     }
     else {
       const srcToken = this.tezosChainAccount.getToken(srcTokenSymbol);
@@ -68,13 +83,42 @@ export class SwapManager {
 
       throw new Error(`Cross-chain swaps from Tezos to EVM are not supported yet.`);
     }
+
+    const order: Order = {
+      order: crossChainOrder,
+      secret,
+      status: 'created',
+    };
+    this._orders.push(order);
+
+    return order;
   }
 
-  async sendOrder(order: SignedCrossChainOrder) {
-    return this.resolverService.placeOrder(order);
+  async sendOrder(order: Order) {
+    try {
+      const result = await this.resolverService.placeOrder(order.order);
+      order.status = 'sent';
+      return result;
+    }
+    catch (error) {
+      order.status = 'failed';
+      throw error;
+    }
   }
 
-  protected async createOrderFromEvm(inputAmount: number, srcToken: Erc20Token, outputAmount: number, dstToken: TezosToken): Promise<SignedCrossChainOrder> {
+  async withdrawOrder(order: Order) {
+    try {
+      const result = await this.resolverService.withdraw(order.order.orderHash, order.secret);
+      order.status = 'withdrawn';
+      return result;
+    }
+    catch (error) {
+      order.status = 'failed';
+      throw error;
+    }
+  }
+
+  protected async createCrossChainOrderFromEvm(inputAmount: number, srcToken: Erc20Token, outputAmount: number, dstToken: TezosToken): Promise<[order: SignedCrossChainOrder, secret: string]> {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.evmChainAccount.getAddress();
@@ -138,11 +182,14 @@ export class SwapManager {
     const signature = await this.signOrderFromEvm(sdkOrder);
     const orderHash = sdkOrder.getOrderHash(srcChainId);
 
-    return {
-      order,
-      signature,
-      orderHash,
-    };
+    return [
+      {
+        order,
+        signature,
+        orderHash,
+      },
+      secret,
+    ];
   }
 
   protected createSecret(): string {

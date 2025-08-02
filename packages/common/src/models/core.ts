@@ -152,5 +152,7 @@ export interface Immutables {
   token: string;
   amount: bigint;
   safetyDeposit: bigint;
-  timeLocks: TimeLocks;
+  timeLocks: TimeLocks & {
+    deployedAt?: bigint;
+  };
 }
