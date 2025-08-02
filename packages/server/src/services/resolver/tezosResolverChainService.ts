@@ -105,7 +105,7 @@ export class TezosResolverChainService {
   }
 
   private prepareTimeLockValue(value: bigint, deployedAt: bigint): string {
-    return ((deployedAt + (value || oneWeekInSeconds)) * 1000n).toString();
+    return ((deployedAt + value) * 1000n).toString();
   }
 
   private prepareTimeLocks(timeLocks: Immutables['timeLocks']) {

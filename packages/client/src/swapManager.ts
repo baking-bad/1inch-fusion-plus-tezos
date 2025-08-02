@@ -166,12 +166,12 @@ export class SwapManager {
         dstSafetyDeposit: parseUnits('0.001', tezosTokens.xtz.decimals),
         timeLocks: {
           srcWithdrawal: 0n, // no finality lock for test
-          srcPublicWithdrawal: 120n, // 2m for private withdrawal
-          srcCancellation: 121n, // 1sec public withdrawal
-          srcPublicCancellation: 122n, // 1sec private cancellation
+          srcPublicWithdrawal: 600n, // 10m for private withdrawal
+          srcCancellation: 700n, // 1min public withdrawal
+          srcPublicCancellation: 701n, // 1sec private cancellation
           dstWithdrawal: 0n, // no finality lock for test
-          dstPublicWithdrawal: 100n, // 100sec private withdrawal
-          dstCancellation: 101n, // 1sec public withdrawal
+          dstPublicWithdrawal: 600n, // 10m private withdrawal
+          dstCancellation: 700n, // 1min public withdrawal
         },
       },
       details: {
@@ -242,12 +242,12 @@ export class SwapManager {
         dstSafetyDeposit: parseUnits('0.001', ethereumTokens.eth.decimals),
         timeLocks: {
           srcWithdrawal: 0n, // no finality lock for test
-          srcPublicWithdrawal: 120n, // 2m for private withdrawal
-          srcCancellation: 121n, // 1sec public withdrawal
-          srcPublicCancellation: 122n, // 1sec private cancellation
+          srcPublicWithdrawal: 600n, // 10m for private withdrawal
+          srcCancellation: 700n, // 1min public withdrawal
+          srcPublicCancellation: 701n, // 1sec private cancellation
           dstWithdrawal: 0n, // no finality lock for test
-          dstPublicWithdrawal: 100n, // 100sec private withdrawal
-          dstCancellation: 101n, // 1sec public withdrawal
+          dstPublicWithdrawal: 600n, // 10m private withdrawal
+          dstCancellation: 700n, // 1min public withdrawal
         },
       },
       details: {
