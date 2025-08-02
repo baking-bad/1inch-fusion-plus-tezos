@@ -1,7 +1,5 @@
 import readline, { Interface as ReadlineInterface } from 'node:readline';
 
-import { parseUnits, formatUnits, parseEther } from 'ethers';
-
 import { utils, EvmChainAccount, TezosChainAccount, ethereumTokens, ethereumTokenDonors, tezosTokens, ChainIds, ChainId, protocolConfig, EvmBalanceProvider, TezosBalanceProvider } from '@baking-bad/1inch-fusion-plus-common';
 
 import config from './config.js';
@@ -26,7 +24,7 @@ export class App {
       [['t', 'topup'], this.topUpCommandHandler, 'Top up EVM account from donor'],
       [['b', 'balances'], this.getTokenBalancesHandler, 'Get token balances for the specified chain and address'],
       [['s', 'swap'], this.swapCommandHandler, 'Swap tokens'],
-      [['w', 'f', 'withdraw', 'finalize-swap'], this.completeSwapCommandHandler, 'Finalize swap'],
+      [['w', 'withdraw'], this.completeSwapCommandHandler, 'Finalize swap'],
       [['o', 'orders'], this.getOrdersCommandHandler, 'Get current orders'],
       [['od', 'order-details'], this.getOrderDetailsCommandHandler, 'Get details of a specific order'],
     ];
