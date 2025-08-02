@@ -2,6 +2,8 @@ import { Immutables, TezosChainAccount, utils } from '@baking-bad/1inch-fusion-p
 
 import type { Transaction } from './models.js';
 
+const oneWeekInSeconds = 7n * 24n * 60n * 60n; // 7 days in seconds
+
 export class TezosResolverChainService {
   constructor(
     private readonly tezosChainAccount: TezosChainAccount,
@@ -14,10 +16,9 @@ export class TezosResolverChainService {
 
   async deploySrc(immutables: Immutables, signature: string): Promise<readonly [tx: Transaction, escrowAddress: string]> {
     const escrowFactoryContract = await this.getEscrowFactoryContract();
-
     const params = {
-      order_hash: immutables.orderHash.replace('0x', ''), // Remove 0x prefix for bytes
-      hashlock: immutables.hashLock.replace('0x', ''), // Remove 0x prefix for bytes
+      order_hash: immutables.orderHash.replace('0x', ''),
+      hashlock: immutables.hashLock.replace('0x', ''),
       maker: immutables.maker,
       taker: immutables.taker,
       token: immutables.tokenId
@@ -36,16 +37,7 @@ export class TezosResolverChainService {
           },
       amount: immutables.amount.toString(),
       safety_deposit: immutables.safetyDeposit.toString(),
-      timelocks: {
-        src_withdrawal: immutables.timeLocks.srcWithdrawal.toString(),
-        src_public_withdrawal: immutables.timeLocks.srcPublicWithdrawal.toString(),
-        src_cancellation: immutables.timeLocks.srcCancellation.toString(),
-        src_public_cancellation: immutables.timeLocks.srcPublicCancellation.toString(),
-        dst_withdrawal: immutables.timeLocks.dstWithdrawal.toString(),
-        dst_public_withdrawal: immutables.timeLocks.dstPublicWithdrawal.toString(),
-        dst_cancellation: immutables.timeLocks.dstCancellation.toString(),
-        // deployed_at: immutables.timeLocks.deployedAt?.toString(),
-      },
+      timelocks: this.prepareTimeLocks(immutables.timeLocks),
     } as const;
 
     const operation = escrowFactoryContract.methodsObject.deploy_src!(params);
@@ -54,7 +46,7 @@ export class TezosResolverChainService {
     });
     await tx.confirmation(1);
 
-    console.dir(tx, { depth: null });
+    const escrowAddress = (tx.operationResults[0] as any).metadata.internal_operation_results[0].result.originated_contracts[0];
 
     return [
       {
@@ -62,7 +54,7 @@ export class TezosResolverChainService {
         block: tx.includedInBlock.toString(),
         timestamp: this.getCurrentOperationTimestamp(),
       },
-      'tz1-src-escrow-address',
+      escrowAddress,
     ];
   }
 
@@ -73,19 +65,24 @@ export class TezosResolverChainService {
       {
         hash: 'o1-dst',
         block: 'b1-dst',
-        timestamp: BigInt(Math.floor(Date.now() / 1000)),
+        timestamp: this.getCurrentOperationTimestamp(),
       },
       'tz1-dst-escrow-address',
     ];
   }
 
   async withdraw(escrowAddress: string, secret: string, immutables: Immutables): Promise<Transaction> {
-    await utils.wait(1000);
+    const escrowContract = await this.tezosChainAccount.tezosToolkit.contract.at(escrowAddress);
+    const params = secret.replace('0x', '');
+
+    const operation = escrowContract.methodsObject.withdraw!(params);
+    const tx = await operation.send();
+    await tx.confirmation(1);
 
     return {
-      hash: 'o1-withdraw',
-      block: 'b1-withdraw',
-      timestamp: BigInt(Math.floor(Date.now() / 1000)),
+      hash: tx.hash,
+      block: tx.includedInBlock.toString(),
+      timestamp: this.getCurrentOperationTimestamp(),
     };
   }
 
@@ -95,7 +92,7 @@ export class TezosResolverChainService {
     return {
       hash: 'o1-cancel',
       block: 'b1-cancel',
-      timestamp: BigInt(Math.floor(Date.now() / 1000)),
+      timestamp: this.getCurrentOperationTimestamp(),
     };
   }
 
@@ -105,5 +102,24 @@ export class TezosResolverChainService {
 
   protected getCurrentOperationTimestamp() {
     return BigInt(Math.floor(Date.now() / 1000));
+  }
+
+  private prepareTimeLockValue(value: bigint, deployedAt: bigint): string {
+    return ((deployedAt + (value || oneWeekInSeconds)) * 1000n).toString();
+  }
+
+  private prepareTimeLocks(timeLocks: Immutables['timeLocks']) {
+    const deployedAt = timeLocks.deployedAt ? timeLocks.deployedAt : this.getCurrentOperationTimestamp();
+
+    return {
+      src_withdrawal: this.prepareTimeLockValue(timeLocks.srcWithdrawal, deployedAt),
+      src_public_withdrawal: this.prepareTimeLockValue(timeLocks.srcPublicWithdrawal, deployedAt),
+      src_cancellation: this.prepareTimeLockValue(timeLocks.srcCancellation, deployedAt),
+      src_public_cancellation: this.prepareTimeLockValue(timeLocks.srcPublicCancellation, deployedAt),
+      dst_withdrawal: this.prepareTimeLockValue(timeLocks.dstWithdrawal, deployedAt),
+      dst_public_withdrawal: this.prepareTimeLockValue(timeLocks.dstPublicWithdrawal, deployedAt),
+      dst_cancellation: this.prepareTimeLockValue(timeLocks.dstCancellation, deployedAt),
+      // deployed_at: deployedAt.toString(),
+    };
   }
 }
