@@ -192,12 +192,12 @@ export class App {
 
   private completeSwapCommandHandler = async (inputCommand: string, ...args: string[]) => {
     if (args.length < 1) {
-      console.error(`Usage: ${inputCommand} <orderIndex>`);
+      console.error(`Usage: ${inputCommand} <orderIndex>|last`);
       return;
     }
 
     const rawOrderIndex = args[0];
-    const orderIndex = Number(rawOrderIndex) - 1;
+    const orderIndex = (rawOrderIndex === 'last' ? this.swapManager.orders.length : Number(rawOrderIndex)) - 1;
     if (!utils.validation.isNonNegativeNumber(orderIndex)) {
       console.error('Invalid order index:', rawOrderIndex);
       return;
@@ -235,12 +235,12 @@ export class App {
 
   private getOrderDetailsCommandHandler = async (inputCommand: string, ...args: string[]) => {
     if (args.length !== 1) {
-      console.error(`Usage: ${inputCommand} <orderIndex>`);
+      console.error(`Usage: ${inputCommand} <orderIndex>|last`);
       return;
     }
 
     const rawOrderIndex = args[0];
-    const orderIndex = Number(rawOrderIndex) - 1;
+    const orderIndex = (rawOrderIndex === 'last' ? this.swapManager.orders.length : Number(rawOrderIndex)) - 1;
     if (!utils.validation.isNonNegativeNumber(orderIndex)) {
       console.error('Invalid order index:', rawOrderIndex);
       return;
