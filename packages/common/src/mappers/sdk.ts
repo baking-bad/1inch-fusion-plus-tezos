@@ -1,22 +1,35 @@
 import Sdk from '@1inch/cross-chain-sdk';
 
-import { ChainIds, Immutables, type CrossChainOrder } from '../models/index.js';
+import { ChainIds, Immutables, TezosToken, type CrossChainOrder } from '../models/index.js';
 import * as tezosChainHelpers from '../tezosChainHelpers.js';
+
+const prepareAddress = (addressOrToken: string | { address: string; tokenId?: string }): Sdk.Address => {
+  const isToken = typeof addressOrToken !== 'string' && 'address' in addressOrToken;
+  const address = !isToken
+    ? addressOrToken
+    : addressOrToken.address;
+
+  if (address.startsWith('tz1') || address.startsWith('KT1')) {
+    return new Sdk.Address(isToken
+      ? tezosChainHelpers.mapTezosTokenAddressToEvmAddress(address, addressOrToken.tokenId)
+      : tezosChainHelpers.mapTezosAddressToEvmAddress(address)
+    );
+  }
+
+  return new Sdk.Address(address);
+};
 
 export const mapOrderToSdkCrossChainOrder = (order: CrossChainOrder): Sdk.CrossChainOrder => {
   return Sdk.CrossChainOrder.new(
-    new Sdk.Address(order.escrowFactory),
+    prepareAddress(order.escrowFactory),
     {
       salt: order.orderInfo.salt,
-      maker: new Sdk.Address(order.orderInfo.maker),
+      maker: prepareAddress(order.orderInfo.maker),
       makingAmount: order.orderInfo.makingAmount,
       takingAmount: order.orderInfo.takingAmount,
-      makerAsset: order.escrowParams.srcChainId === ChainIds.Ethereum
-        ? new Sdk.Address(order.orderInfo.makerAsset.address)
-        : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.makerAsset.address, order.orderInfo.makerAsset.tokenId)),
-      takerAsset: order.escrowParams.dstChainId === ChainIds.Ethereum
-        ? new Sdk.Address(order.orderInfo.takerAsset.address)
-        : new Sdk.Address(tezosChainHelpers.mapTezosTokenAddressToEvmAddress(order.orderInfo.takerAsset.address, order.orderInfo.takerAsset.tokenId)),
+      makerAsset: prepareAddress(order.orderInfo.makerAsset),
+      takerAsset: prepareAddress(order.orderInfo.takerAsset),
+      receiver: prepareAddress(order.orderInfo.receiver),
     },
     {
       hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
@@ -37,7 +50,7 @@ export const mapOrderToSdkCrossChainOrder = (order: CrossChainOrder): Sdk.CrossC
     {
       auction: new Sdk.AuctionDetails(order.details.auction),
       whitelist: order.details.whitelist.map(item => ({
-        address: new Sdk.Address(item.address),
+        address: prepareAddress(item.address),
         allowFrom: item.allowFrom,
       })),
       resolvingStartTime: order.details.resolvingStartTime,

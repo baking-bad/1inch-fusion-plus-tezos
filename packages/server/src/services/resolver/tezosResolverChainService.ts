@@ -16,7 +16,7 @@ export class TezosResolverChainService {
       {
         hash: 'o1-src',
         block: 'b1-src',
-        timestamp: BigInt(Date.now()),
+        timestamp: BigInt(Math.floor(Date.now() / 1000)),
       },
       'tz1-src-escrow-address',
     ];
@@ -29,7 +29,7 @@ export class TezosResolverChainService {
       {
         hash: 'o1-dst',
         block: 'b1-dst',
-        timestamp: BigInt(Date.now()),
+        timestamp: BigInt(Math.floor(Date.now() / 1000)),
       },
       'tz1-dst-escrow-address',
     ];
@@ -41,7 +41,7 @@ export class TezosResolverChainService {
     return {
       hash: 'o1-withdraw',
       block: 'b1-withdraw',
-      timestamp: BigInt(Date.now()),
+      timestamp: BigInt(Math.floor(Date.now() / 1000)),
     };
   }
 
@@ -51,7 +51,7 @@ export class TezosResolverChainService {
     return {
       hash: 'o1-cancel',
       block: 'b1-cancel',
-      timestamp: BigInt(Date.now()),
+      timestamp: BigInt(Math.floor(Date.now() / 1000)),
     };
   }
 }

@@ -58,10 +58,8 @@ export interface CrossChainOrderInfoDto {
   salt?: string;
   /**
    * Destination chain receiver address
-   *
-   * If not set, then `maker` used
    */
-  receiver?: string;
+  receiver: string;
 };
 
 export interface EscrowParamsDto {

@@ -137,6 +137,7 @@ export class SwapManager {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.evmChainAccount.getAddress();
+    const receiverAddress = await this.tezosChainAccount.getAddress();
     const srcChainId = ChainIds.Ethereum;
     const dstChainId = ChainIds.TezosGhostnet;
     const orderTimestamp = BigInt((await this.evmChainAccount.provider.getBlock('latest'))!.timestamp);
@@ -155,6 +156,7 @@ export class SwapManager {
           address: dstToken.address,
           tokenId: dstToken.type === 'fa2' ? dstToken.tokenId : undefined,
         },
+        receiver: receiverAddress,
       },
       escrowParams: {
         hashLock: hashLock.toString(),
@@ -195,7 +197,7 @@ export class SwapManager {
     };
     const sdkOrder = mappers.sdk.mapOrderToSdkCrossChainOrder(order);
     const signature = await this.signOrderFromEvm(sdkOrder);
-    const orderHash = sdkOrder.getOrderHash(srcChainId);
+    const orderHash = this.getOrderHashFromEvm(sdkOrder);
 
     return [
       {
@@ -211,6 +213,7 @@ export class SwapManager {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.tezosChainAccount.getAddress();
+    const receiverAddress = await this.evmChainAccount.getAddress();
     const srcChainId = ChainIds.TezosGhostnet;
     const dstChainId = ChainIds.Ethereum;
     const orderTimestamp = BigInt(Math.floor(new Date((await this.tezosChainAccount.tezosToolkit.rpc.getBlock()).header.timestamp).getTime() / 1000));
@@ -229,6 +232,7 @@ export class SwapManager {
         takerAsset: {
           address: dstToken.address,
         },
+        receiver: receiverAddress,
       },
       escrowParams: {
         hashLock: hashLock.toString(),
@@ -269,7 +273,7 @@ export class SwapManager {
     };
     const sdkOrder = mappers.sdk.mapOrderToSdkCrossChainOrder(order);
     const signature = await this.signOrderFromTezos(sdkOrder);
-    const orderHash = sdkOrder.getOrderHash(ChainIds.TezosGhostnetSdkChainId);
+    const orderHash = this.getOrderHashFromTezos(sdkOrder);
 
     return [
       {
@@ -295,7 +299,15 @@ export class SwapManager {
     );
   }
 
+  private getOrderHashFromEvm(order: Sdk.CrossChainOrder): string {
+    return order.getOrderHash(ChainIds.Ethereum);
+  }
+
   private async signOrderFromTezos(order: Sdk.CrossChainOrder): Promise<string> {
     return 'edsk';
+  }
+
+  private getOrderHashFromTezos(order: Sdk.CrossChainOrder): string {
+    return order.getOrderHash(ChainIds.TezosGhostnetSdkChainId);
   }
 }
