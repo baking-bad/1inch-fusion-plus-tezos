@@ -127,6 +127,10 @@ export class Resolver {
       };
     }
     else if (order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
+      console.log('Starting swap from Tezos to Ethereum...');
+      console.log('Order:');
+      console.dir(order, { depth: null });
+
       throw new Error('Tezos to Ethereum swap is not supported yet');
     }
 

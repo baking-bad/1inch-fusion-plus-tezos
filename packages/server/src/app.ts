@@ -124,7 +124,7 @@ export class App {
       );
 
       res.status(500).send({
-        error: 'Internal server error',
+        error: 'Internal server error: ' + error.message,
       });
     });
 

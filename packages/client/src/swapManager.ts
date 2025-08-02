@@ -31,6 +31,8 @@ interface Order {
   status: 'created' | 'sent' | 'withdrawn' | 'cancelled' | 'failed';
 }
 
+const TezosGhostnetSdkChainId = Sdk.NetworkEnum.BINANCE;
+
 export class SwapManager {
   private readonly _orders: Order[] = [];
 
@@ -52,9 +54,9 @@ export class SwapManager {
     let crossChainOrder: SignedCrossChainOrder;
     let secret: string;
 
-    if (srcChainId !== ChainIds.Ethereum)
+    if (srcChainId !== ChainIds.Ethereum && srcChainId !== ChainIds.TezosGhostnet)
       throw new Error(`Unsupported source chain ID: ${srcChainId}`);
-    if (dstChainId !== ChainIds.TezosGhostnet)
+    if (dstChainId !== ChainIds.TezosGhostnet && dstChainId !== ChainIds.Ethereum)
       throw new Error(`Unsupported destination chain ID: ${dstChainId}`);
 
     if (srcChainId === ChainIds.Ethereum) {
@@ -81,7 +83,7 @@ export class SwapManager {
         throw new Error(`Destination token ${dstTokenSymbol} not found`);
       }
 
-      throw new Error(`Cross-chain swaps from Tezos to EVM are not supported yet.`);
+      [crossChainOrder, secret] = await this.createCrossChainOrderFromTezos(srcAmount, srcToken, dstAmount, dstToken);
     }
 
     const order: Order = {
@@ -192,6 +194,80 @@ export class SwapManager {
     ];
   }
 
+  protected async createCrossChainOrderFromTezos(inputAmount: number, srcToken: TezosToken, outputAmount: number, dstToken: Erc20Token): Promise<[order: SignedCrossChainOrder, secret: string]> {
+    const secret = this.createSecret();
+    const hashLock = Sdk.HashLock.forSingleFill(secret);
+    const makerAddress = await this.tezosChainAccount.getAddress();
+    const srcChainId = ChainIds.TezosGhostnet;
+    const dstChainId = ChainIds.Ethereum;
+    const orderTimestamp = BigInt(Math.floor(new Date((await this.tezosChainAccount.tezosToolkit.rpc.getBlock()).header.timestamp).getTime() / 1000));
+
+    const order: CrossChainOrder = {
+      escrowFactory: config.tezosChain.escrowFactoryAddress,
+      orderInfo: {
+        salt: Sdk.randBigInt(1000n),
+        maker: makerAddress,
+        makingAmount: parseUnits(inputAmount.toString(), srcToken.decimals),
+        takingAmount: parseUnits(outputAmount.toString(), dstToken.decimals),
+        makerAsset: {
+          address: srcToken.address,
+          tokenId: srcToken.tokenId,
+        },
+        takerAsset: {
+          address: dstToken.address,
+        },
+      },
+      escrowParams: {
+        hashLock: hashLock.toString(),
+        srcChainId,
+        dstChainId,
+        srcSafetyDeposit: parseUnits('0.001', 6),
+        dstSafetyDeposit: parseEther('0.001'),
+        timeLocks: {
+          srcWithdrawal: 0n, // no finality lock for test
+          srcPublicWithdrawal: 120n, // 2m for private withdrawal
+          srcCancellation: 121n, // 1sec public withdrawal
+          srcPublicCancellation: 122n, // 1sec private cancellation
+          dstWithdrawal: 0n, // no finality lock for test
+          dstPublicWithdrawal: 100n, // 100sec private withdrawal
+          dstCancellation: 101n, // 1sec public withdrawal
+        },
+      },
+      details: {
+        auction: {
+          initialRateBump: 0,
+          points: [],
+          duration: 120n,
+          startTime: orderTimestamp,
+        },
+        whitelist: [
+          {
+            address: config.tezosChain.resolverAddress,
+            allowFrom: 0n,
+          },
+        ],
+        resolvingStartTime: 0n,
+      },
+      extra: {
+        nonce: Sdk.randBigInt(UINT_40_MAX),
+        allowPartialFills: false,
+        allowMultipleFills: false,
+      },
+    };
+    const sdkOrder = this.createSdkCrossChainOrder(order);
+    const signature = await this.signOrderFromEvm(sdkOrder);
+    const orderHash = sdkOrder.getOrderHash(TezosGhostnetSdkChainId);
+
+    return [
+      {
+        order,
+        signature,
+        orderHash,
+      },
+      secret,
+    ];
+  }
+
   protected createSecret(): string {
     return uint8ArrayToHex(randomBytes(32));
   }
@@ -201,7 +277,9 @@ export class SwapManager {
       new Sdk.Address(order.escrowFactory),
       {
         salt: order.orderInfo.salt,
-        maker: new Sdk.Address(order.orderInfo.maker),
+        maker: order.escrowParams.srcChainId === ChainIds.Ethereum
+          ? new Sdk.Address(order.orderInfo.maker)
+          : new Sdk.Address(tezosChainHelpers.mapTezosAddressToEvmAddress(order.orderInfo.maker)),
         makingAmount: order.orderInfo.makingAmount,
         takingAmount: order.orderInfo.takingAmount,
         makerAsset: order.escrowParams.srcChainId === ChainIds.Ethereum
@@ -213,8 +291,8 @@ export class SwapManager {
       },
       {
         hashLock: Sdk.HashLock.fromString(order.escrowParams.hashLock),
-        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
-        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : Sdk.NetworkEnum.BINANCE,
+        srcChainId: order.escrowParams.srcChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : TezosGhostnetSdkChainId,
+        dstChainId: order.escrowParams.dstChainId === ChainIds.Ethereum ? Sdk.NetworkEnum.ETHEREUM : TezosGhostnetSdkChainId,
         srcSafetyDeposit: order.escrowParams.srcSafetyDeposit,
         dstSafetyDeposit: order.escrowParams.dstSafetyDeposit,
         timeLocks: Sdk.TimeLocks.new({

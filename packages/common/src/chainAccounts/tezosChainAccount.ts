@@ -10,7 +10,7 @@ interface TezosChainAccountOptions {
 }
 
 export class TezosChainAccount {
-  protected readonly tezosToolkit: TezosToolkit;
+  readonly tezosToolkit: TezosToolkit;
   protected readonly tokens: ReadonlyMap<string, TezosToken>;
 
   constructor(options: TezosChainAccountOptions) {
