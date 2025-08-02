@@ -26,6 +26,7 @@ export class App {
       [['ba', 'balances-all'], this.getAllTokenBalancesHandler, 'Get token balances for all chains and participating addresses'],
       [['s', 'swap'], this.swapCommandHandler, 'Swap tokens'],
       [['w', 'withdraw'], this.completeSwapCommandHandler, 'Finalize swap'],
+      [['c', 'cancel'], this.cancelSwapCommandHandler, 'Cancel swap'],
       [['o', 'orders'], this.getOrdersCommandHandler, 'Get current orders'],
       [['od', 'order-details'], this.getOrderDetailsCommandHandler, 'Get details of a specific order'],
     ];
@@ -216,6 +217,31 @@ export class App {
 
     const result = await this.swapManager.withdrawOrder(order);
     console.log('Swap finalized successfully:', result);
+  };
+
+  private cancelSwapCommandHandler = async (inputCommand: string, ...args: string[]) => {
+    if (args.length < 1) {
+      console.error(`Usage: ${inputCommand} <orderIndex>|last`);
+      return;
+    }
+
+    const rawOrderIndex = args[0];
+    const orderIndex = (rawOrderIndex === 'last' ? this.swapManager.orders.length : Number(rawOrderIndex)) - 1;
+    if (!utils.validation.isNonNegativeNumber(orderIndex)) {
+      console.error('Invalid order index:', rawOrderIndex);
+      return;
+    }
+
+    const order = this.swapManager.orders[orderIndex];
+    if (!order) {
+      console.error(`Order with index ${orderIndex} not found.`);
+      return;
+    }
+
+    console.log(`Canceling swap for order #${orderIndex + 1} (${order.order.orderHash})...`);
+
+    const result = await this.swapManager.withdrawOrder(order);
+    console.log('Swap canceled successfully:', result);
   };
 
   private getOrdersCommandHandler = async (inputCommand: string, ...args: string[]) => {

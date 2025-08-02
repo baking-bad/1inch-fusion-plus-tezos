@@ -9,7 +9,7 @@ import {
   type TezosChainAccount
 } from '@baking-bad/1inch-fusion-plus-common';
 
-import type { FinalizeSwapResult, OrderContext, StartSwapResult } from './models.js';
+import type { CancelSwapResult, FinalizeSwapResult, OrderContext, StartSwapResult } from './models.js';
 import { EvmResolverChainService } from './evmResolverChainService.js';
 import { TezosResolverChainService } from './tezosResolverChainService.js';
 import { EvmEscrowFactory } from './evmEscrowFactory.js';
@@ -207,25 +207,25 @@ export class Resolver {
       console.dir(sdkSrcImmutables, { depth: null });
       console.debug('Dst Immutables:', orderContext.dstImmutables);
 
-      const dstWithdrawalResult = await this.tezosResolverChainService.withdraw(
+      const dstWithdrawalTx = await this.tezosResolverChainService.withdraw(
         orderContext.dstEscrowAddress,
         secret,
         orderContext.dstImmutables
       );
-      console.log('Tezos withdrawal completed:', dstWithdrawalResult);
+      console.log('Tezos withdrawal completed:', dstWithdrawalTx);
 
-      const srcWithdrawalResult = await this.evmResolverChainService.withdraw(
+      const srcWithdrawalTx = await this.evmResolverChainService.withdraw(
         orderContext.srcEscrowAddress,
         secret,
         sdkSrcImmutables
       );
-      console.log('Ethereum withdrawal completed:', srcWithdrawalResult);
+      console.log('Ethereum withdrawal completed:', srcWithdrawalTx);
 
       this.orders.delete(orderHash);
 
       return {
-        srcWithdrawalTx: srcWithdrawalResult,
-        dstWithdrawalTx: dstWithdrawalResult,
+        srcWithdrawalTx,
+        dstWithdrawalTx,
       };
     }
     else if (orderContext.order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && orderContext.order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
@@ -236,33 +236,93 @@ export class Resolver {
       console.debug('Dst Immutables:', orderContext.dstImmutables);
       console.dir(sdkDstImmutables, { depth: null });
 
-      const dstWithdrawalResult = await this.evmResolverChainService.withdraw(
+      const dstWithdrawalTx = await this.evmResolverChainService.withdraw(
         orderContext.dstEscrowAddress,
         secret,
         sdkDstImmutables
       );
-      console.log('Ethereum withdrawal completed:', dstWithdrawalResult);
+      console.log('Ethereum withdrawal completed:', dstWithdrawalTx);
 
-      const srcWithdrawalResult = await this.tezosResolverChainService.withdraw(
+      const srcWithdrawalTx = await this.tezosResolverChainService.withdraw(
         orderContext.srcEscrowAddress,
         secret,
         orderContext.srcImmutables
       );
-      console.log('Tezos withdrawal completed:', srcWithdrawalResult);
+      console.log('Tezos withdrawal completed:', srcWithdrawalTx);
 
       this.orders.delete(orderHash);
 
       return {
-        srcWithdrawalTx: srcWithdrawalResult,
-        dstWithdrawalTx: dstWithdrawalResult,
+        srcWithdrawalTx,
+        dstWithdrawalTx,
       };
     }
 
     throw new Error(`Unsupported chain combination: ${orderContext.order.order.escrowParams.srcChainId} to ${orderContext.order.order.escrowParams.dstChainId}`);
   }
 
-  async cancelSwap(_orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
-    throw new Error('Cancel swap is not implemented yet');
+  async cancelSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<CancelSwapResult> {
+    const orderContext = this.orders.get(orderHash);
+    if (!orderContext) {
+      throw new Error(`Order not found: ${orderHash}`);
+    }
+
+    if (orderContext.order.order.escrowParams.srcChainId === ChainIds.Ethereum && orderContext.order.order.escrowParams.dstChainId === ChainIds.TezosGhostnet) {
+      console.log('Canceling swap from Ethereum to Tezos...');
+
+      const sdkSrcImmutables = mappers.sdk.mapImmutablesToSdkImmutables(orderContext.srcImmutables);
+      console.debug('Src Immutables:', orderContext.srcImmutables);
+      console.dir(sdkSrcImmutables, { depth: null });
+      console.debug('Dst Immutables:', orderContext.dstImmutables);
+
+      const dstCancellationTx = await this.tezosResolverChainService.cancel(
+        orderContext.dstEscrowAddress,
+        orderContext.dstImmutables
+      );
+      console.log('Tezos cancellation completed:', dstCancellationTx);
+
+      const srcCancellationTx = await this.evmResolverChainService.cancel(
+        orderContext.srcEscrowAddress,
+        sdkSrcImmutables
+      );
+      console.log('Ethereum cancellation completed:', srcCancellationTx);
+
+      this.orders.delete(orderHash);
+
+      return {
+        srcCancellationTx,
+        dstCancellationTx,
+      };
+    }
+    else if (orderContext.order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && orderContext.order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
+      console.log('Canceling swap from Tezos to Ethereum...');
+
+      const sdkDstImmutables = mappers.sdk.mapImmutablesToSdkImmutables(orderContext.dstImmutables);
+      console.debug('Src Immutables:', orderContext.srcImmutables);
+      console.debug('Dst Immutables:', orderContext.dstImmutables);
+      console.dir(sdkDstImmutables, { depth: null });
+
+      const dstCancellationTx = await this.evmResolverChainService.cancel(
+        orderContext.dstEscrowAddress,
+        sdkDstImmutables
+      );
+      console.log('Ethereum cancellation completed:', dstCancellationTx);
+
+      const srcCancellationTx = await this.tezosResolverChainService.cancel(
+        orderContext.srcEscrowAddress,
+        orderContext.srcImmutables
+      );
+      console.log('Tezos cancellation completed:', srcCancellationTx);
+
+      this.orders.delete(orderHash);
+
+      return {
+        srcCancellationTx: srcCancellationTx,
+        dstCancellationTx: dstCancellationTx,
+      };
+    }
+
+    throw new Error(`Unsupported chain combination: ${orderContext.order.order.escrowParams.srcChainId} to ${orderContext.order.order.escrowParams.dstChainId}`);
   }
 
   private buildImmutables({

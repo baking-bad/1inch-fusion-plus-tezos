@@ -22,5 +22,12 @@ export const getResolverRouter = (app: App): Router => {
     return res.status(200).json(result);
   });
 
+  resolverRouter.post('/order/:orderHash/cancel', async (req, res) => {
+    const orderHash = req.params.orderHash;
+    const result = await app.services.resolver.cancelSwap(orderHash);
+
+    return res.status(200).json(result);
+  });
+
   return resolverRouter;
 };

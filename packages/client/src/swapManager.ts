@@ -132,6 +132,18 @@ export class SwapManager {
     }
   }
 
+  async cancelOrder(order: Order) {
+    try {
+      const result = await this.resolverService.cancel(order.order.orderHash);
+      order.status = 'cancelled';
+      return result;
+    }
+    catch (error) {
+      order.status = 'failed';
+      throw error;
+    }
+  }
+
   protected async createCrossChainOrderFromEvm(inputAmount: number, srcToken: Erc20Token, outputAmount: number, dstToken: TezosFaToken): Promise<[order: SignedCrossChainOrder, secret: string]> {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);

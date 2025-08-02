@@ -31,4 +31,12 @@ export class ResolverService extends RemoteService {
 
     return result;
   }
+
+  async cancel(orderHash: string) {
+    const result = await this.fetch<WithdrawOrderResult>(`/resolver/order/${orderHash}/cancel`, {
+      method: 'POST',
+    });
+
+    return result;
+  }
 }

@@ -15,6 +15,7 @@ export interface OrderContext {
   dstEscrowDeploymentTx: Transaction;
   dstEscrowAddress: string;
 }
+
 export interface StartSwapResult {
   srcEscrowDeploymentTx: Transaction;
   srcEscrowAddress: string;
@@ -25,4 +26,9 @@ export interface StartSwapResult {
 export interface FinalizeSwapResult {
   srcWithdrawalTx: Transaction;
   dstWithdrawalTx: Transaction;
+}
+
+export interface CancelSwapResult {
+  srcCancellationTx: Transaction;
+  dstCancellationTx: Transaction;
 }

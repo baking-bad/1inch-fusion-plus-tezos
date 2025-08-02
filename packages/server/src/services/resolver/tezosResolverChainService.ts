@@ -35,12 +35,16 @@ export class TezosResolverChainService {
     };
   }
 
-  async cancel(_escrowAddress: string, _immutables: Immutables): Promise<Transaction> {
-    await utils.wait(1000);
+  async cancel(escrowAddress: string, _immutables: Immutables): Promise<Transaction> {
+    const escrowContract = await this.tezosChainAccount.tezosToolkit.contract.at(escrowAddress);
+
+    const operation = escrowContract.methodsObject.cancel!();
+    const tx = await operation.send();
+    await tx.confirmation(1);
 
     return {
-      hash: 'o1-cancel',
-      block: 'b1-cancel',
+      hash: tx.hash,
+      block: tx.includedInBlock.toString(),
       timestamp: this.getCurrentOperationTimestamp(),
     };
   }
