@@ -16,43 +16,30 @@
               (int %dst_public_withdrawal)
               (int %dst_cancellation)))
         (pair %deploy_src
-           (bytes %order_hash)
-           (bytes %hashlock)
-           (address %maker)
-           (address %taker)
-           (or %token (or %fA (address %fA12) (pair %fA2 address nat)) (unit %tEZ))
-           (nat %amount)
-           (mutez %safety_deposit)
-           (pair %timelocks
-              (int %src_withdrawal)
-              (int %src_public_withdrawal)
-              (int %src_cancellation)
-              (int %src_public_cancellation)
-              (int %dst_withdrawal)
-              (int %dst_public_withdrawal)
-              (int %dst_cancellation)))) ;
+           (pair %order
+              (key %maker)
+              (or %token (or %fA (address %fA12) (pair %fA2 address nat)) (unit %tEZ))
+              (nat %amount)
+              (bytes %order_hash)
+              (bytes %hashlock))
+           (signature %signature)
+           (pair %partial_immutables
+              (address %taker)
+              (mutez %safety_deposit)
+              (pair %timelocks
+                 (int %src_withdrawal)
+                 (int %src_public_withdrawal)
+                 (int %src_cancellation)
+                 (int %src_public_cancellation)
+                 (int %dst_withdrawal)
+                 (int %dst_public_withdrawal)
+                 (int %dst_cancellation))))) ;
   storage
     (pair (set %hashlocks bytes) (set %allowed_operators address) (address %admin)) ;
   code { LAMBDA
-           (pair bytes
-                 bytes
-                 address
-                 address
-                 (or (or address (pair address nat)) unit)
-                 nat
-                 mutez
-                 (pair int int int int int int int))
-           (pair bytes
-                 bytes
-                 address
-                 address
-                 (or (or address (pair address nat)) unit)
-                 nat
-                 mutez
-                 (pair timestamp timestamp timestamp timestamp timestamp timestamp timestamp))
-           { DUP ;
-             GET 14 ;
-             NOW ;
+           (pair int int int int int int int)
+           (pair timestamp timestamp timestamp timestamp timestamp timestamp timestamp)
+           { NOW ;
              DUP 2 ;
              GET 12 ;
              DUP 2 ;
@@ -81,22 +68,7 @@
              CAR ;
              DIG 7 ;
              ADD ;
-             PAIR 7 ;
-             DUP 2 ;
-             GET 13 ;
-             DUP 3 ;
-             GET 11 ;
-             DUP 4 ;
-             GET 9 ;
-             DUP 5 ;
-             GET 7 ;
-             DUP 6 ;
-             GET 5 ;
-             DUP 7 ;
-             GET 3 ;
-             DIG 7 ;
-             CAR ;
-             PAIR 8 } ;
+             PAIR 7 } ;
          SWAP ;
          UNPAIR ;
          IF_LEFT
@@ -115,9 +87,25 @@
              EQ ;
              IF { DROP } { FAILWITH } ;
              DUP 2 ;
+             GET 14 ;
              DIG 4 ;
              SWAP ;
              EXEC ;
+             DUP 3 ;
+             GET 13 ;
+             DUP 4 ;
+             GET 11 ;
+             DUP 5 ;
+             GET 9 ;
+             DUP 6 ;
+             GET 7 ;
+             DUP 7 ;
+             GET 5 ;
+             DUP 8 ;
+             GET 3 ;
+             DUP 9 ;
+             CAR ;
+             PAIR 8 ;
              SWAP ;
              NONE key_hash ;
              CREATE_CONTRACT
@@ -422,19 +410,49 @@
                      TRANSFER_TOKENS } ;
                  CONS }
                { DIG 2 ; DIG 3 ; DROP 3 ; NIL operation } }
-           { PUSH string "INVALID_TEZ_AMOUNT_IN_TRANSACTION" ;
-             DUP 2 ;
-             GET 13 ;
+           { UNPAIR 3 ;
+             DUP ;
+             PACK ;
+             PUSH string "INVALID_ORDER_SIGNATURE" ;
+             SWAP ;
+             DIG 3 ;
+             DUP 4 ;
+             CAR ;
+             CHECK_SIGNATURE ;
+             IF { DROP } { FAILWITH } ;
+             PUSH string "INVALID_TEZ_AMOUNT_IN_TRANSACTION" ;
+             DUP 3 ;
+             GET 3 ;
              AMOUNT ;
              COMPARE ;
              EQ ;
              IF { DROP } { FAILWITH } ;
-             DUP ;
-             DIG 3 ;
+             DUP 2 ;
+             GET 4 ;
+             DIG 4 ;
              SWAP ;
              EXEC ;
-             DUP 2 ;
-             GET 13 ;
+             DUP 3 ;
+             GET 3 ;
+             DUP 3 ;
+             GET 5 ;
+             DUP 4 ;
+             GET 3 ;
+             DUP 6 ;
+             CAR ;
+             DUP 6 ;
+             CAR ;
+             HASH_KEY ;
+             IMPLICIT_ACCOUNT ;
+             ADDRESS ;
+             DUP 7 ;
+             GET 8 ;
+             DIG 7 ;
+             GET 7 ;
+             PAIR 8 ;
+             DUP ;
+             DIG 2 ;
+             GET 3 ;
              NONE key_hash ;
              CREATE_CONTRACT
                { parameter

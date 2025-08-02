@@ -49,12 +49,15 @@ type factory_immutables = {
 }
 
 type order = {
-  salt: nat;
-  maker: bytes;
-  receiver: bytes;
-  maker_asset: bytes;
-  taker_asset: bytes;
-  making_amount: nat;
-  taking_amount: nat;
-  maker_traits: nat;
+  maker : key;
+  token : token;
+  amount : nat;
+  order_hash : bytes;
+  hashlock : bytes;
+}
+
+type partial_immutables = {
+  taker : address;
+  safety_deposit : tez;
+  timelocks : factory_timelocks;
 }
