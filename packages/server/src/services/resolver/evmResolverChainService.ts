@@ -4,6 +4,7 @@ import Sdk from '@1inch/cross-chain-sdk';
 import { EvmChainAccount } from '@baking-bad/1inch-fusion-plus-common';
 
 import Contract from '../../../../../contracts/evm/compiled/Resolver.sol/Resolver.json' with { type: 'json' };
+import { Transaction } from './models.js';
 
 export class EvmResolverChainService {
   private readonly iface = new Interface(Contract.abi);
@@ -74,15 +75,18 @@ export class EvmResolverChainService {
     });
   }
 
-  protected async send(param: TransactionRequest): Promise<{ txHash: string; blockTimestamp: bigint; blockHash: string }> {
-    const res = await this.evmChainAccount.signer.sendTransaction({ ...param, gasLimit: 10_000_000, from: this.evmChainAccount.getAddress() });
+  protected async send(param: TransactionRequest): Promise<Transaction> {
+    const res = await this.evmChainAccount.signer.sendTransaction({
+      ...param, gasLimit: 10_000_000,
+      from: this.evmChainAccount.getAddress(),
+    });
     const receipt = await res.wait(1);
 
     if (receipt && receipt.status) {
       return {
-        txHash: receipt.hash,
-        blockTimestamp: BigInt((await res.getBlock())!.timestamp),
-        blockHash: res.blockHash as string,
+        hash: receipt.hash,
+        timestamp: BigInt((await res.getBlock())!.timestamp),
+        block: res.blockHash!,
       };
     }
 

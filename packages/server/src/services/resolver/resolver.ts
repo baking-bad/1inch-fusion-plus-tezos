@@ -2,7 +2,7 @@ import Sdk from '@1inch/cross-chain-sdk';
 
 import { ChainIds, mappers, tezosChainHelpers, type EvmChainAccount, type SignedCrossChainOrder, type TezosChainAccount } from '@baking-bad/1inch-fusion-plus-common';
 
-import type { OrderContext } from './orderContext.js';
+import type { FinalizeSwapResult, OrderContext, StartSwapResult } from './models.js';
 import { EvmResolverChainService } from './evmResolverChainService.js';
 import { TezosResolverChainService } from './tezosResolverChainService.js';
 import { EvmEscrowFactory } from './evmEscrowFactory.js';
@@ -13,18 +13,6 @@ export interface ResolverOptions {
   tezosEscrowFactoryAddress: string;
   evmChainAccount: EvmChainAccount;
   tezosChainAccount: TezosChainAccount;
-}
-
-interface StartSwapResult {
-  srcEscrowTx: string;
-  srcEscrowAddress: string;
-  dstEscrowTx: string;
-  dstEscrowAddress: string;
-}
-
-interface FinalizeSwapResult {
-  srcWithdrawalTx: string;
-  dstWithdrawalTx: string;
 }
 
 export class Resolver {
@@ -52,6 +40,7 @@ export class Resolver {
     if (!this.canSwap(order)) {
       throw new Error('Cannot swap: conditions not met');
     }
+
     const [evmResolverOwnerAddress, tezosResolverOwnerAddress] = await Promise.all([
       this.evmChainAccount.getAddress(),
       this.tezosChainAccount.getAddress(),
@@ -68,7 +57,7 @@ export class Resolver {
         throw new Error(`Order hash mismatch: expected ${order.orderHash}, got ${sdkOrderHash}`);
       }
 
-      const ethereumEscrowDeployTxResult = await this.evmResolverChainService.deploySrc(
+      const srcEscrowDeploymentTx = await this.evmResolverChainService.deploySrc(
         order.order.escrowParams.srcChainId,
         sdkOrder,
         order.signature,
@@ -79,40 +68,38 @@ export class Resolver {
         order.order.orderInfo.makingAmount
       );
 
-      console.log('Ethereum escrow deployed:', ethereumEscrowDeployTxResult);
+      console.log('Ethereum escrow deployed:', srcEscrowDeploymentTx);
 
-      const srcEscrowEvent = await this.evmEscrowFactory.getSrcDeployEvent(ethereumEscrowDeployTxResult.blockHash);
+      const srcEscrowEvent = await this.evmEscrowFactory.getSrcDeployEvent(srcEscrowDeploymentTx.block);
       const sdkSrcImmutables = srcEscrowEvent[0];
       const srcImmutables = mappers.sdk.mapSdkImmutablesToImmutables(sdkSrcImmutables);
 
       const tezosResolverOwnerAddressEvmStyle = tezosChainHelpers.mapTezosAddressToEvmAddress(tezosResolverOwnerAddress);
-      console.log('Tezos resolver owner address (EVM style):', tezosResolverOwnerAddress, ' -> ', tezosResolverOwnerAddressEvmStyle);
+      console.debug('Tezos resolver owner address (EVM style):', tezosResolverOwnerAddress, ' -> ', tezosResolverOwnerAddressEvmStyle);
       const sdkDstImmutables = sdkSrcImmutables
         .withComplement(srcEscrowEvent[1])
         .withTaker(new Sdk.Address(tezosResolverOwnerAddressEvmStyle));
       const dstImmutables = mappers.sdk.mapSdkImmutablesToImmutables(sdkDstImmutables);
-      const tezosEscrowDeployTxResult = await this.tezosResolverChainService.deployDst(dstImmutables);
+      const [dstEscrowDeploymentTx, dstEscrowAddress] = await this.tezosResolverChainService.deployDst(dstImmutables);
+      console.log('Tezos escrow deployed:', dstEscrowDeploymentTx);
 
       console.debug('Src Immutables:', srcImmutables);
       console.dir(sdkSrcImmutables, { depth: null });
       console.debug('Dst Immutables:', dstImmutables);
       console.dir(sdkDstImmutables, { depth: null });
 
-      console.log('Tezos escrow deployed:', tezosEscrowDeployTxResult);
-
       const srcEscrowImplementationAddress = await this.evmEscrowFactory.getSourceImpl();
       const srcEscrowAddress = new Sdk.EscrowFactory(new Sdk.Address(this.evmEscrowFactory.address)).getSrcEscrowAddress(
         srcEscrowEvent[0],
         srcEscrowImplementationAddress
       ).toString();
-      const dstEscrowAddress = 'TODO: Tezos';
 
       const orderContext: OrderContext = {
         order,
         srcImmutables: srcImmutables,
         dstImmutables: dstImmutables,
-        srcEscrowDeployedTimestamp: ethereumEscrowDeployTxResult.blockTimestamp,
-        dstEscrowDeployedTimestamp: 0n,
+        srcEscrowDeploymentTx,
+        dstEscrowDeploymentTx,
         srcEscrowAddress,
         dstEscrowAddress,
       };
@@ -120,10 +107,10 @@ export class Resolver {
       this.orders.set(order.orderHash, orderContext);
 
       return {
-        srcEscrowTx: ethereumEscrowDeployTxResult.txHash,
+        srcEscrowDeploymentTx: srcEscrowDeploymentTx,
         srcEscrowAddress,
         dstEscrowAddress,
-        dstEscrowTx: tezosEscrowDeployTxResult,
+        dstEscrowDeploymentTx: dstEscrowDeploymentTx,
       };
     }
     else if (order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
@@ -153,6 +140,13 @@ export class Resolver {
       console.debug('Dst Immutables:', orderContext.dstImmutables);
       console.dir(sdkDstImmutables, { depth: null });
 
+      const dstWithdrawalResult = await this.tezosResolverChainService.withdraw(
+        orderContext.dstEscrowAddress,
+        secret,
+        orderContext.dstImmutables
+      );
+      console.log('Tezos withdrawal completed:', dstWithdrawalResult);
+
       const srcWithdrawalResult = await this.evmResolverChainService.withdraw(
         orderContext.srcEscrowAddress,
         secret,
@@ -161,8 +155,8 @@ export class Resolver {
       console.log('Ethereum withdrawal completed:', srcWithdrawalResult);
 
       return {
-        srcWithdrawalTx: srcWithdrawalResult.txHash,
-        dstWithdrawalTx: 'TODO: Tezos withdrawal',
+        srcWithdrawalTx: srcWithdrawalResult,
+        dstWithdrawalTx: dstWithdrawalResult,
       };
     }
     else if (orderContext.order.order.escrowParams.srcChainId === ChainIds.TezosGhostnet && orderContext.order.order.escrowParams.dstChainId === ChainIds.Ethereum) {
@@ -173,5 +167,6 @@ export class Resolver {
   }
 
   async cancelSwap(orderHash: SignedCrossChainOrder['orderHash']): Promise<void> {
+    throw new Error('Cancel swap is not implemented yet');
   }
 }
