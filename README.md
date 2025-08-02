@@ -37,6 +37,11 @@ cd 1inch-fusion-plus-tezos
 npm run build
 ```
 
+   Or use the `-o` flag to override existing `.env` files:
+```bash
+npm run build -- -o
+```
+
 ## Run the Services
 
 To run the system locally, follow these steps:
