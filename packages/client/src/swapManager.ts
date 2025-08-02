@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import Sdk from '@1inch/cross-chain-sdk';
 import { uint8ArrayToHex, UINT_40_MAX } from '@1inch/byte-utils';
 import { parseUnits } from 'ethers';
+import { MichelsonData, MichelsonType, packDataBytes } from '@taquito/michel-codec';
 
 import {
   ChainIds,
@@ -20,6 +21,7 @@ import {
 
 import type { ResolverService } from './resolverService.js';
 import config from './config.js';
+import { orderTezosType } from './orderTezosType.js';
 
 interface SwapManagerOptions {
   evmChainAccount: EvmChainAccount;
@@ -224,6 +226,7 @@ export class SwapManager {
     const secret = this.createSecret();
     const hashLock = Sdk.HashLock.forSingleFill(secret);
     const makerAddress = await this.tezosChainAccount.getAddress();
+    const makerPublicKey = await this.tezosChainAccount.tezosToolkit.signer.publicKey();
     const receiverAddress = await this.evmChainAccount.getAddress();
     const srcChainId = ChainIds.TezosGhostnet;
     const dstChainId = ChainIds.Ethereum;
@@ -234,6 +237,7 @@ export class SwapManager {
       orderInfo: {
         salt: Sdk.randBigInt(1000n),
         maker: makerAddress,
+        makerPublicKey,
         makingAmount: parseUnits(inputAmount.toString(), srcToken.decimals),
         takingAmount: parseUnits(outputAmount.toString(), dstToken.decimals),
         makerAsset: {
@@ -283,8 +287,8 @@ export class SwapManager {
       },
     };
     const sdkOrder = mappers.sdk.mapOrderToSdkCrossChainOrder(order);
-    const signature = await this.signOrderFromTezos(sdkOrder);
     const orderHash = this.getOrderHashFromTezos(sdkOrder);
+    const signature = await this.signOrderFromTezos(order, orderHash);
 
     return [
       {
@@ -314,9 +318,55 @@ export class SwapManager {
     return order.getOrderHash(ChainIds.Ethereum);
   }
 
-  private async signOrderFromTezos(order: Sdk.CrossChainOrder): Promise<string> {
-    const orderHash = this.getOrderHashFromTezos(order);
-    const signature = await this.tezosChainAccount.tezosToolkit.signer.sign(orderHash.replace('0x', ''));
+  private async signOrderFromTezos(order: CrossChainOrder, orderHash: string): Promise<string> {
+    const orderMichelson: MichelsonData = {
+      prim: 'Pair',
+      args: [
+        { string: order.orderInfo.makerPublicKey! }, // maker public key
+        {
+          prim: 'Pair',
+          args: [
+            order.orderInfo.makerAsset.tokenId !== undefined
+              ? {
+                prim: 'Left',
+                args: [{
+                  prim: 'Right',
+                  args: [{
+                    prim: 'Pair',
+                    args: [
+                      { string: order.orderInfo.makerAsset.address },
+                      { int: order.orderInfo.makerAsset.tokenId.toString() },
+                    ],
+                  }],
+                }],
+              }
+              : {
+                prim: 'Left',
+                args: [{
+                  prim: 'Left',
+                  args: [{ string: order.orderInfo.makerAsset.address }],
+                }],
+              }, // token
+            {
+              prim: 'Pair',
+              args: [
+                { int: order.orderInfo.makingAmount.toString() }, // amount
+                {
+                  prim: 'Pair',
+                  args: [
+                    { bytes: orderHash.replace('0x', '') }, // order_hash
+                    { bytes: order.escrowParams.hashLock.replace('0x', '') }, // hashlock
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    console.dir(orderMichelson, { depth: null });
+    const orderBytes = packDataBytes(orderMichelson, orderTezosType);
+    const signature = await this.tezosChainAccount.tezosToolkit.signer.sign(orderBytes.bytes);
 
     return signature.prefixSig;
   }

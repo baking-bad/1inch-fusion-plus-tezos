@@ -341,6 +341,7 @@ export class Resolver {
       orderHash: order.orderHash,
       hashLock: order.order.escrowParams.hashLock,
       maker: side === 'src' ? order.order.orderInfo.maker : order.order.orderInfo.receiver,
+      makerPublicKey: order.order.orderInfo.makerPublicKey,
       taker,
       token: side === 'src' ? order.order.orderInfo.makerAsset.address : order.order.orderInfo.takerAsset.address,
       tokenId: side === 'src' ? order.order.orderInfo.makerAsset.tokenId : order.order.orderInfo.takerAsset.tokenId,
