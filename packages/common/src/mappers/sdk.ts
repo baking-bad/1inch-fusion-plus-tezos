@@ -1,6 +1,6 @@
 import Sdk from '@1inch/cross-chain-sdk';
 
-import { ChainIds, Immutables, TezosToken, type CrossChainOrder } from '../models/index.js';
+import { ChainIds, Immutables, type CrossChainOrder } from '../models/index.js';
 import * as tezosChainHelpers from '../tezosChainHelpers.js';
 
 const prepareAddress = (addressOrToken: string | { address: string; tokenId?: string }): Sdk.Address => {

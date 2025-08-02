@@ -148,6 +148,7 @@ export interface Immutables {
   maker: string;
   taker: string;
   token: string;
+  tokenId?: string;
   amount: bigint;
   safetyDeposit: bigint;
   timeLocks: TimeLocks & {

@@ -36,7 +36,7 @@ export class Resolver {
     this.tezosChainAccount = options.tezosChainAccount;
     this.evmEscrowFactory = new EvmEscrowFactory(options.evmChainAccount.provider, options.evmEscrowFactoryAddress);
     this.evmResolverChainService = new EvmResolverChainService(options.evmChainAccount, options.evmResolverContractAddress);
-    this.tezosResolverChainService = new TezosResolverChainService(options.tezosChainAccount);
+    this.tezosResolverChainService = new TezosResolverChainService(options.tezosChainAccount, options.tezosEscrowFactoryAddress);
   }
 
   canSwap(_order: SignedCrossChainOrder): boolean {
@@ -285,6 +285,7 @@ export class Resolver {
       maker: side === 'src' ? order.order.orderInfo.maker : order.order.orderInfo.receiver,
       taker,
       token: side === 'src' ? order.order.orderInfo.makerAsset.address : order.order.orderInfo.takerAsset.address,
+      tokenId: side === 'src' ? order.order.orderInfo.makerAsset.tokenId : order.order.orderInfo.takerAsset.tokenId,
       amount: side === 'src' ? order.order.orderInfo.makingAmount : order.order.orderInfo.takingAmount,
       safetyDeposit: side === 'src' ? order.order.escrowParams.srcSafetyDeposit : order.order.escrowParams.dstSafetyDeposit,
       timeLocks: {
