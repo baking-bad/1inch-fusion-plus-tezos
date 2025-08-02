@@ -12,6 +12,7 @@
     "npm": ">=10.9.0"
   },
   "scripts": {
+    "build": "bash ./scripts/build.sh",
     "postinstall": "patch-package"
   },
   "devDependencies": {
