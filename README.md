@@ -4,6 +4,16 @@
 
 This project is a cross-chain bridge implementation developed for [Unite Defi](https://ethglobal.com/events/unite). It provides a solution for executing 1inch Fusion+ cross-chain orders between Tezos and Ethereum networks.
 
+### Features
+
+- [x] **Hashlock and timelock functionality** - Preserved on the Tezos side to ensure secure cross-chain transactions
+- [x] **Signature verification** - Implemented on the Tezos side for validating swap requests
+- [x] **Bidirectional swaps** - Token swaps are supported in both directions (Tezos ↔ Ethereum)
+- [x] **On-chain execution** - Deployed and tested on Tezos Ghostnet and Local EVM Node
+- [x] **Resolver server** - A lightweight resolver implemented to launch cross-chain order execution
+- [x] **User interface** - Console application for easy interaction
+- [ ] **Partial fills** - Not implemented
+
 The system consists of:
 1. Smart contracts deployed on both EVM-compatible chains and Tezos
 2. A resolver service that receives cross-chain orders from clients and executes them on Tezos and Ethereum
