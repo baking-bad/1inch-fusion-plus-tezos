@@ -23,10 +23,10 @@ The system consists of:
 
 - **`packages/client`** - Command-line interface application that allows users to swap tokens between Tezos and Ethereum networks
 - **`packages/server`** - Resolver service that receives cross-chain orders from clients and executes them on Tezos and Ethereum
-> **Note:** In this project, for simplicity, the server is composed of three logical parts:
-> - **1InchBackend** – Creates and stores cross-chain orders.
-> - **Resolver** – Executes orders, originates escrow contracts, and calls `withdraw` / `cancel`.
-> - **Relayer** – Tracks the state of escrow contracts and forwards the user's secret to the resolver.
+> **Note:** For simplicity, we combined the functionality of three separate components into a single server:
+> - **Backend** – Responsible for creating and storing cross-chain orders.
+> - **Resolver** – Handles order execution, escrow contract origination, and performs `withdraw` / `cancel` operations.
+> - **Relayer** – Monitors escrow contract states and forwards the user's secret to the resolver.
 
 - **`packages/common`** - Shared utilities, types, and configuration helpers used across client, server and local-evm-node packages
 - **`packages/local-evm-node`** - Local EVM node for testing that deploys escrow factory and resolver contracts on EVM-compatible chains
