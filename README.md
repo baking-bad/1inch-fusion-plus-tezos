@@ -23,6 +23,11 @@ The system consists of:
 
 - **`packages/client`** - Command-line interface application that allows users to swap tokens between Tezos and Ethereum networks
 - **`packages/server`** - Resolver service that receives cross-chain orders from clients and executes them on Tezos and Ethereum
+> **Note:** In this project, for simplicity, the server is composed of three logical parts:
+> - **1InchBackend** – Creates and stores cross-chain orders.
+> - **Resolver** – Executes orders, originates escrow contracts, and calls `withdraw` / `cancel`.
+> - **Relayer** – Tracks the state of escrow contracts and forwards the user's secret to the resolver.
+
 - **`packages/common`** - Shared utilities, types, and configuration helpers used across client, server and local-evm-node packages
 - **`packages/local-evm-node`** - Local EVM node for testing that deploys escrow factory and resolver contracts on EVM-compatible chains
 - **`contracts/evm`** - 1Finch Fusion+ Solidity smart contracts from https://github.com/1inch/cross-chain-resolver-example
@@ -82,3 +87,124 @@ To run the system locally, follow these steps:
    cd packages/client
    npm start
    ```
+
+## Example Swap: Tezos → Ethereum
+
+Use the `Client` application to run the following commands
+
+1. **Check initial balances for maker and taker**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   This command displays the balance of all available tokens for the user (a.k.a. the `maker` or `me`),  and the balance of all available tokens for the resolver (a.k.a the `taker`).
+
+2. **Create a cross-chain order**
+
+   Run the `swap` command in the following format:
+
+   ```bash
+   swap 123 tez:usdt 123 eth:usdc
+   ```
+
+   After executing this command:
+
+   - A cross-chain order will be created on the server with all necessary parameters.
+   - The server will deploy smart contracts:
+     - On the Tezos network, an `escrow_src` contract will be originated with the maker's (user's) funds locked.
+     - On the Ethereum network, an `escrow_dst` contract will be deployed with the taker's (resolver's) funds locked.
+
+3. **Withdraw funds (you have 1 minute to do this)**
+
+   Run the `withdraw` command:
+
+   ```bash
+   withdraw last
+   ```
+
+   After executing this command:
+
+   - The resolver will use the user's secret to call `withdraw` on both escrow contracts deployed on Tezos and Ethereum networks.
+   - Funds will be unlocked from the smart contracts, completing the swap.
+     - Funds from the `escrow_src` contract will be transferred to the taker (resolver).
+     - Funds from the `escrow_dst` contract will be transferred to the maker (user).
+
+4. **Check balances for maker and taker after swap**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   Compare the balances with those from step 1.
+
+   - The user's balance on **Tezos** should be decreased by the corresponding amount.
+   - The user's balance on **Ethereum** should be increased by the corresponding amount.
+   - The resolver's balance on **Tezos** should be increased by the corresponding amount.
+   - The resolver's balance on **Ethereum** should be decreased by the corresponding amount.
+
+ 
+## Example Swap: Ethereum → Tezos
+
+Use the `Client` application to run the following commands
+
+1. **Check initial balances for maker and taker**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   This command displays the balance of all available tokens for the user (a.k.a. the `maker` or `me`),  and the balance of all available tokens for the resolver (a.k.a the `taker`).
+
+2. **Create a cross-chain order**
+
+   Run the `swap` command in the following format:
+
+   ```bash
+   swap 123 eth:usdc 123 tez:usdt 
+   ```
+
+   After executing this command:
+
+   - A cross-chain order will be created on the server with all necessary parameters.
+   - The server will deploy smart contracts:
+     - On the Ethereum network, an `escrow_src` contract will be originated with the maker's (user's) funds locked.
+     - On the Tezos network, an `escrow_dst` contract will be deployed with the taker's (resolver's) funds locked.
+
+3. **Withdraw funds (you have 1 minute to do this)**
+
+   Run the `withdraw` command:
+
+   ```bash
+   withdraw last
+   ```
+
+   After executing this command:
+
+   - The resolver will use the user's secret to call `withdraw` on both escrow contracts deployed on Tezos and Ethereum networks.
+   - Funds will be unlocked from the smart contracts, completing the swap.
+     - Funds from the `escrow_src` contract will be transferred to the taker (resolver).
+     - Funds from the `escrow_dst` contract will be transferred to the maker (user).
+
+4. **Check balances for maker and taker after swap**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   Compare the balances with those from step 1.
+
+   - The user's balance on **Tezos** should be increased by the corresponding amount.
+   - The user's balance on **Ethereum** should be decreased by the corresponding amount.
+   - The resolver's balance on **Tezos** should be decreased by the corresponding amount.
+   - The resolver's balance on **Ethereum** should be increased by the corresponding amount.
+
+ 
