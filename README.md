@@ -88,7 +88,7 @@ To run the system locally, follow these steps:
    npm start
    ```
 
-## Example Swap: Tezos → Ethereum
+## Example of Swap: Tezos → Ethereum
 
 Use the `Client` application to run the following commands
 
@@ -148,7 +148,7 @@ Use the `Client` application to run the following commands
    - The resolver's balance on **Ethereum** should be decreased by the corresponding amount.
 
  
-## Example Swap: Ethereum → Tezos
+## Example of Swap: Ethereum → Tezos
 
 Use the `Client` application to run the following commands
 
@@ -208,3 +208,138 @@ Use the `Client` application to run the following commands
    - The resolver's balance on **Ethereum** should be increased by the corresponding amount.
 
  
+## Example of Cancel: Tezos → Ethereum
+
+Use the `Client` application to run the following commands
+
+1. **Check initial balances for maker and taker**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   This command displays the balance of all available tokens for the user (a.k.a. the `maker` or `me`),  and the balance of all available tokens for the resolver (a.k.a the `taker`).
+
+2. **Create a cross-chain order**
+
+   Run the `swap` command in the following format:
+
+   ```bash
+   swap 123 tez:usdt 123 eth:usdc
+   ```
+
+   After executing this command:
+
+   - A cross-chain order will be created on the server with all necessary parameters.
+   - The server will deploy smart contracts:
+     - On the Tezos network, an `escrow_src` contract will be originated with the maker's (user's) funds locked.
+     - On the Ethereum network, an `escrow_dst` contract will be deployed with the taker's (resolver's) funds locked.
+
+3. **Wait 70 seconds or more**
+
+   Wait until the withdrawal period expires.
+
+4. **Try withdraw funds**
+
+   Run the `withdraw` command:
+
+   ```bash
+   withdraw last
+   ```
+
+   The corresponding error should be displayed in console.
+
+5. **Cancel the swap**
+
+   Run the `cancel` command:
+
+   ```bash
+   cancel last
+   ```
+
+   After executing this command:
+
+   - The resolver will call `cancel` on both escrow contracts deployed on Tezos and Ethereum networks.
+   - Funds will be returned back to the maker and taker respectively.
+     - Funds from the `escrow_src` contract will be transferred to the maker (user).
+     - Funds from the `escrow_dst` contract will be transferred to the taker (resolver).
+
+6. **Check balances for maker and taker after swap**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   Compare the balances with those from step 1. Balanced should be the same.
+
+## Example of Cancel: Ethereum → Tezos
+
+Use the `Client` application to run the following commands
+
+1. **Check initial balances for maker and taker**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   This command displays the balance of all available tokens for the user (a.k.a. the `maker` or `me`),  and the balance of all available tokens for the resolver (a.k.a the `taker`).
+
+2. **Create a cross-chain order**
+
+   Run the `swap` command in the following format:
+
+   ```bash
+   swap 123 eth:usdc 123 tez:usdt
+   ```
+
+   After executing this command:
+
+   - A cross-chain order will be created on the server with all necessary parameters.
+   - The server will deploy smart contracts:
+     - On the Ethereum network, an `escrow_src` contract will be originated with the maker's (user's) funds locked.
+     - On the Tezos network, an `escrow_dst` contract will be deployed with the taker's (resolver's) funds locked.
+
+3. **Wait 70 seconds or more**
+
+   Wait until the withdrawal period expires.
+
+4. **Try withdraw funds**
+
+   Run the `withdraw` command:
+
+   ```bash
+   withdraw last
+   ```
+
+   The corresponding error should be displayed in console.
+
+5. **Cancel the swap**
+
+   Run the `cancel` command:
+
+   ```bash
+   cancel last
+   ```
+
+   After executing this command:
+
+   - The resolver will call `cancel` on both escrow contracts deployed on Tezos and Ethereum networks.
+   - Funds will be returned back to the maker and taker respectively.
+     - Funds from the `escrow_src` contract will be transferred to the maker (user).
+     - Funds from the `escrow_dst` contract will be transferred to the taker (resolver).
+
+6. **Check balances for maker and taker after swap**
+
+   Run the command:
+
+   ```bash
+   balances-all 
+   ```
+
+   Compare the balances with those from step 1. Balanced should be the same.
